@@ -15,6 +15,7 @@ from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
 from fitbit_fetch.influx_writer import InfluxWriter
 from fitbit_fetch.runner import run_scheduled_auto_update_loop, run_startup_or_bulk_update
 from fitbit_fetch.run_utils import build_date_list, write_and_reset_records
+from fitbit_fetch.state import RuntimeState
 
 # %% [markdown]
 # ## Variables
@@ -41,7 +42,6 @@ INFLUXDB_V3_ACCESS_TOKEN = CONFIG.influxdb_v3_access_token
 client_id = CONFIG.client_id
 client_secret = CONFIG.client_secret
 DEVICENAME = CONFIG.devicename
-ACCESS_TOKEN = "" # Empty Global variable initialization, will be replaced with a functional access code later using the refresh code
 MANUAL_START_DATE = CONFIG.manual_start_date
 MANUAL_END_DATE = CONFIG.manual_end_date
 AUTO_DATE_RANGE = CONFIG.auto_date_range
@@ -51,6 +51,7 @@ SCHEDULE_AUTO_UPDATE = CONFIG.schedule_auto_update # Scheduling updates of data 
 SERVER_ERROR_MAX_RETRY = CONFIG.server_error_max_retry
 EXPIRED_TOKEN_MAX_RETRY = CONFIG.expired_token_max_retry
 SKIP_REQUEST_ON_SERVER_ERROR = CONFIG.skip_request_on_server_error
+APP_STATE = RuntimeState()
 
 # %% [markdown]
 # ## Logging setup
@@ -86,8 +87,7 @@ fitbit_client = FitbitClient(
 
 # Generic request caller for all Fitbit endpoints.
 def request_data_from_fitbit(url, headers=None, params=None, data=None, request_type="get"):
-    global ACCESS_TOKEN
-    fitbit_client.access_token = ACCESS_TOKEN
+    fitbit_client.access_token = APP_STATE.access_token
     response_data = fitbit_client.request_data(
         url,
         headers=headers,
@@ -95,20 +95,19 @@ def request_data_from_fitbit(url, headers=None, params=None, data=None, request_
         data=data,
         request_type=request_type,
     )
-    ACCESS_TOKEN = fitbit_client.access_token
+    APP_STATE.access_token = fitbit_client.access_token
     return response_data
 
 # %% [markdown]
 # ## Token Refresh Management
 
 def Get_New_Access_Token(client_id, client_secret):
-    global ACCESS_TOKEN
     access_token = fitbit_client.get_new_access_token(client_id, client_secret)
-    ACCESS_TOKEN = access_token
+    APP_STATE.access_token = access_token
     return access_token
 
 try:
-    ACCESS_TOKEN = Get_New_Access_Token(client_id, client_secret)
+    APP_STATE.access_token = Get_New_Access_Token(client_id, client_secret)
 except InvalidRefreshTokenError as err:
     logging.error(str(err))
     print(str(err))
@@ -144,13 +143,14 @@ if LOCAL_TIMEZONE == "Automatic":
     LOCAL_TIMEZONE = pytz.timezone(request_data_from_fitbit("https://api.fitbit.com/1/user/-/profile.json")["user"]["timezone"])
 else:
     LOCAL_TIMEZONE = pytz.timezone(LOCAL_TIMEZONE)
+APP_STATE.local_timezone = LOCAL_TIMEZONE
 
 # %% [markdown]
 # ## Selecting Dates for update
 
 # %%
-start_date, end_date, start_date_str, end_date_str = build_date_range(
-    local_timezone=LOCAL_TIMEZONE,
+APP_STATE.start_date, APP_STATE.end_date, APP_STATE.start_date_str, APP_STATE.end_date_str = build_date_range(
+    local_timezone=APP_STATE.local_timezone,
     auto_date_range=AUTO_DATE_RANGE,
     auto_update_date_range=auto_update_date_range,
     manual_start_date=MANUAL_START_DATE,
@@ -161,19 +161,15 @@ start_date, end_date, start_date_str, end_date_str = build_date_range(
 # ## Setting up functions for Requesting data from server
 
 # %%
-collected_records = []
-
 def get_collected_records():
-    return collected_records
+    return APP_STATE.collected_records
 
 def set_collected_records(records):
-    global collected_records
-    collected_records = records
+    APP_STATE.collected_records = records
 
 def update_working_dates():
-    global end_date, start_date, end_date_str, start_date_str
-    start_date, end_date, start_date_str, end_date_str = refresh_auto_date_range(
-        local_timezone=LOCAL_TIMEZONE,
+    APP_STATE.start_date, APP_STATE.end_date, APP_STATE.start_date_str, APP_STATE.end_date_str = refresh_auto_date_range(
+        local_timezone=APP_STATE.local_timezone,
         auto_update_date_range=auto_update_date_range,
     )
 
@@ -181,9 +177,9 @@ def update_working_dates():
 def get_battery_level():
     collect_battery_level(
         request_data_from_fitbit=request_data_from_fitbit,
-        local_timezone=LOCAL_TIMEZONE,
+        local_timezone=APP_STATE.local_timezone,
         devicename=DEVICENAME,
-        collected_records=collected_records,
+        collected_records=APP_STATE.collected_records,
         logger=logging,
     )
 
@@ -191,9 +187,9 @@ def get_battery_level():
 def get_intraday_data_limit_1d(date_str, measurement_list):
     collect_intraday_data_limit_1d(
         request_data_from_fitbit=request_data_from_fitbit,
-        local_timezone=LOCAL_TIMEZONE,
+        local_timezone=APP_STATE.local_timezone,
         devicename=DEVICENAME,
-        collected_records=collected_records,
+        collected_records=APP_STATE.collected_records,
         logger=logging,
         date_str=date_str,
         measurement_list=measurement_list,
@@ -205,9 +201,9 @@ def get_daily_data_limit_30d(start_date_str, end_date_str):
         request_data_from_fitbit=request_data_from_fitbit,
         start_date_str=start_date_str,
         end_date_str=end_date_str,
-        local_timezone=LOCAL_TIMEZONE,
+        local_timezone=APP_STATE.local_timezone,
         devicename=DEVICENAME,
-        collected_records=collected_records,
+        collected_records=APP_STATE.collected_records,
         logger=logging,
     )
 
@@ -217,9 +213,9 @@ def get_daily_data_limit_100d(start_date_str, end_date_str):
         request_data_from_fitbit=request_data_from_fitbit,
         start_date_str=start_date_str,
         end_date_str=end_date_str,
-        local_timezone=LOCAL_TIMEZONE,
+        local_timezone=APP_STATE.local_timezone,
         devicename=DEVICENAME,
-        collected_records=collected_records,
+        collected_records=APP_STATE.collected_records,
         logger=logging,
     )
 
@@ -229,9 +225,9 @@ def get_daily_data_limit_365d(start_date_str, end_date_str):
         request_data_from_fitbit=request_data_from_fitbit,
         start_date_str=start_date_str,
         end_date_str=end_date_str,
-        local_timezone=LOCAL_TIMEZONE,
+        local_timezone=APP_STATE.local_timezone,
         devicename=DEVICENAME,
-        collected_records=collected_records,
+        collected_records=APP_STATE.collected_records,
         logger=logging,
     )
 
@@ -241,9 +237,9 @@ def get_daily_data_limit_none(start_date_str, end_date_str):
         request_data_from_fitbit=request_data_from_fitbit,
         start_date_str=start_date_str,
         end_date_str=end_date_str,
-        local_timezone=LOCAL_TIMEZONE,
+        local_timezone=APP_STATE.local_timezone,
         devicename=DEVICENAME,
-        collected_records=collected_records,
+        collected_records=APP_STATE.collected_records,
         logger=logging,
     )
 
@@ -251,10 +247,10 @@ def get_daily_data_limit_none(start_date_str, end_date_str):
 def get_tcx_data(tcx_url, ActivityID):
     collect_tcx_data(
         request_data_from_fitbit=request_data_from_fitbit,
-        access_token=ACCESS_TOKEN,
+        access_token=APP_STATE.access_token,
         tcx_url=tcx_url,
         activity_id=ActivityID,
-        collected_records=collected_records,
+        collected_records=APP_STATE.collected_records,
         logger=logging,
     )
 
@@ -264,7 +260,7 @@ def fetch_latest_activities(end_date_str):
         request_data_from_fitbit=request_data_from_fitbit,
         get_tcx_data=get_tcx_data,
         end_date_str=end_date_str,
-        collected_records=collected_records,
+        collected_records=APP_STATE.collected_records,
         logger=logging,
     )
 
@@ -275,10 +271,10 @@ def fetch_latest_activities(end_date_str):
 # %%
 run_startup_or_bulk_update(
     auto_date_range=AUTO_DATE_RANGE,
-    start_date=start_date,
-    end_date=end_date,
-    start_date_str=start_date_str,
-    end_date_str=end_date_str,
+    start_date=APP_STATE.start_date,
+    end_date=APP_STATE.end_date,
+    start_date_str=APP_STATE.start_date_str,
+    end_date_str=APP_STATE.end_date_str,
     schedule_module=schedule,
     logger=logging,
     get_new_access_token=Get_New_Access_Token,
@@ -317,8 +313,8 @@ if SCHEDULE_AUTO_UPDATE:
         get_daily_data_limit_365d=get_daily_data_limit_365d,
         get_daily_data_limit_none=get_daily_data_limit_none,
         fetch_latest_activities=fetch_latest_activities,
-        get_start_date_str=lambda: start_date_str,
-        get_end_date_str=lambda: end_date_str,
+        get_start_date_str=lambda: APP_STATE.start_date_str,
+        get_end_date_str=lambda: APP_STATE.end_date_str,
         datetime_cls=datetime,
         timedelta_cls=timedelta,
         get_collected_records=get_collected_records,
