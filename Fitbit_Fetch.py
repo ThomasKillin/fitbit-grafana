@@ -1,9 +1,9 @@
 # %%
-import requests, schedule, time, pytz, logging, sys
+import schedule, time, pytz, logging, sys
 from datetime import datetime, timedelta
 from fitbit_fetch.collectors_activity import collect_latest_activities, collect_tcx_data
 from fitbit_fetch.collectors_basic import collect_battery_level, collect_intraday_data_limit_1d
-from fitbit_fetch.collectors_daily import collect_daily_data_limit_none
+from fitbit_fetch.collectors_daily import collect_daily_data_limit_30d, collect_daily_data_limit_none
 from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
@@ -192,118 +192,15 @@ def get_intraday_data_limit_1d(date_str, measurement_list):
 
 # Max range is 30 days, records BR, SPO2 Intraday, skin temp and HRV - 4 queries
 def get_daily_data_limit_30d(start_date_str, end_date_str):
-
-    hrv_data_list = request_data_from_fitbit('https://api.fitbit.com/1/user/-/hrv/date/' + start_date_str + '/' + end_date_str + '.json').get('hrv')
-    if hrv_data_list != None:
-        for data in hrv_data_list:
-            log_time = datetime.fromisoformat(data["dateTime"] + "T" + "00:00:00")
-            utc_time = LOCAL_TIMEZONE.localize(log_time).astimezone(pytz.utc).isoformat()
-            collected_records.append({
-                    "measurement":  "HRV",
-                    "time": utc_time,
-                    "tags": {
-                        "Device": DEVICENAME
-                    },
-                    "fields": {
-                        "dailyRmssd": float(data["value"]["dailyRmssd"]) if data["value"]["dailyRmssd"] else None,
-                        "deepRmssd": float(data["value"]["deepRmssd"]) if data["value"]["deepRmssd"] else None
-                    }
-                })
-        logging.info("Recorded HRV for date " + start_date_str + " to " + end_date_str)
-    else:
-        logging.error("Recording failed HRV for date " + start_date_str + " to " + end_date_str)
-
-    br_data_list = request_data_from_fitbit('https://api.fitbit.com/1/user/-/br/date/' + start_date_str + '/' + end_date_str + '.json').get("br")
-    if br_data_list != None:
-        for data in br_data_list:
-            log_time = datetime.fromisoformat(data["dateTime"] + "T" + "00:00:00")
-            utc_time = LOCAL_TIMEZONE.localize(log_time).astimezone(pytz.utc).isoformat()
-            collected_records.append({
-                    "measurement":  "BreathingRate",
-                    "time": utc_time,
-                    "tags": {
-                        "Device": DEVICENAME
-                    },
-                    "fields": {
-                        "value": float(data["value"]["breathingRate"])
-                    }
-                })
-        logging.info("Recorded BR for date " + start_date_str + " to " + end_date_str)
-    else:
-        logging.warning("Records not found : BR for date " + start_date_str + " to " + end_date_str)
-
-    skin_temp_data_list = request_data_from_fitbit('https://api.fitbit.com/1/user/-/temp/skin/date/' + start_date_str + '/' + end_date_str + '.json').get("tempSkin")
-    if skin_temp_data_list != None:
-        for temp_record in skin_temp_data_list:
-            log_time = datetime.fromisoformat(temp_record["dateTime"] + "T" + "00:00:00")
-            utc_time = LOCAL_TIMEZONE.localize(log_time).astimezone(pytz.utc).isoformat()
-            collected_records.append({
-                    "measurement":  "Skin Temperature Variation",
-                    "time": utc_time,
-                    "tags": {
-                        "Device": DEVICENAME
-                    },
-                    "fields": {
-                        "RelativeValue": float(temp_record["value"]["nightlyRelative"])
-                    }
-                })
-        logging.info("Recorded Skin Temperature Variation for date " + start_date_str + " to " + end_date_str)
-    else:
-        logging.error("Recording failed : Skin Temperature Variation for date " + start_date_str + " to " + end_date_str)
-
-    try:
-        spo2_data_list = request_data_from_fitbit('https://api.fitbit.com/1/user/-/spo2/date/' + start_date_str + '/' + end_date_str + '/all.json')
-    except requests.exceptions.HTTPError as e:
-        logging.error(f"{e}")
-        spo2_data_list = None
-    if spo2_data_list != None:
-        for days in spo2_data_list:
-            data = days["minutes"]
-            for record in data: 
-                log_time = datetime.fromisoformat(record["minute"])
-                utc_time = LOCAL_TIMEZONE.localize(log_time).astimezone(pytz.utc).isoformat()
-                collected_records.append({
-                        "measurement":  "SPO2_Intraday",
-                        "time": utc_time,
-                        "tags": {
-                            "Device": DEVICENAME
-                        },
-                        "fields": {
-                            "value": float(record["value"]),
-                        }
-                    })
-        logging.info("Recorded SPO2 intraday for date " + start_date_str + " to " + end_date_str)
-    else:
-        logging.error("Recording failed : SPO2 intraday for date " + start_date_str + " to " + end_date_str)
-
-    weight_data_list = request_data_from_fitbit('https://api.fitbit.com/1/user/-/body/log/weight/date/' + start_date_str + '/' + end_date_str + '.json').get("weight")
-    if weight_data_list != None:
-        for entry in weight_data_list:
-            log_time = datetime.fromisoformat(entry["date"] + "T" + entry["time"])
-            utc_time = LOCAL_TIMEZONE.localize(log_time).astimezone(pytz.utc).isoformat()
-            collected_records.append({
-                "measurement":  "weight",
-                "time": utc_time,
-                "tags": {
-                    "Device": DEVICENAME
-                },
-                "fields": {
-                    "value": float(entry["weight"]),
-                }
-            })
-            collected_records.append({
-                "measurement":  "bmi",
-                "time": utc_time,
-                "tags": {
-                    "Device": DEVICENAME
-                },
-                "fields": {
-                    "value": float(entry["bmi"]),
-                }
-            })
-        logging.info("Recorded weight and BMI for date " + start_date_str + " to " + end_date_str)
-    else:
-        logging.error("Recording failed : weight and BMI for date " + start_date_str + " to " + end_date_str)
+    collect_daily_data_limit_30d(
+        request_data_from_fitbit=request_data_from_fitbit,
+        start_date_str=start_date_str,
+        end_date_str=end_date_str,
+        local_timezone=LOCAL_TIMEZONE,
+        devicename=DEVICENAME,
+        collected_records=collected_records,
+        logger=logging,
+    )
 
 # Only for sleep data - limit 100 days - 1 query
 def get_daily_data_limit_100d(start_date_str, end_date_str):
