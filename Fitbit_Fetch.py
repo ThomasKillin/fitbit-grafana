@@ -1,11 +1,11 @@
 # %%
-import base64, requests, schedule, time, json, pytz, logging, sys
-from requests.exceptions import ConnectionError
+import requests, schedule, time, pytz, logging, sys
 from datetime import datetime, timedelta
 # For XML processing
 import xml.etree.ElementTree as ET
 from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
+from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
 from fitbit_fetch.influx_writer import InfluxWriter
 
 # %% [markdown]
@@ -63,108 +63,53 @@ logging.basicConfig(
 # ## Setting up base API Caller function
 
 # %%
-# Generic Request caller for all 
-def request_data_from_fitbit(url, headers={}, params={}, data={}, request_type="get"):
-    global ACCESS_TOKEN
-    retry_attempts = 0
-    logging.debug("Requesting data from fitbit via Url : " + url)
-    while True: # Unlimited Retry attempts
-        if request_type == "get" and headers == {}:
-            headers = {
-                "Authorization": f"Bearer {ACCESS_TOKEN}",
-                "Accept": "application/json",
-                'Accept-Language': FITBIT_LANGUAGE
-            }
-        try:        
-            if request_type == "get":
-                response = requests.get(url, headers=headers, params=params, data=data)
-            elif request_type == "post":
-                response = requests.post(url, headers=headers, params=params, data=data)
-            else:
-                raise Exception("Invalid request type " + str(request_type))
-        
-            if response.status_code == 200: # Success
-                if url.endswith(".tcx"): # TCX XML file for GPS data
-                    return response
-                else:
-                    return response.json()
-            elif response.status_code == 429: # API Limit reached
-                retry_after = int(response.headers["Fitbit-Rate-Limit-Reset"]) + 300 # Fitbit changed their headers.
-                logging.warning("Fitbit API limit reached. Error code : " + str(response.status_code) + ", Retrying in " + str(retry_after) + " seconds")
-                print("Fitbit API limit reached. Error code : " + str(response.status_code) + ", Retrying in " + str(retry_after) + " seconds")
-                time.sleep(retry_after)
-            elif response.status_code == 401: # Access token expired ( most likely )
-                logging.info("Current Access Token : " + ACCESS_TOKEN)
-                logging.warning("Error code : " + str(response.status_code) + ", Details : " + response.text)
-                print("Error code : " + str(response.status_code) + ", Details : " + response.text)
-                ACCESS_TOKEN = Get_New_Access_Token(client_id, client_secret)
-                logging.info("New Access Token : " + ACCESS_TOKEN)
-                headers["Authorization"] = f"Bearer {ACCESS_TOKEN}" # Update the renewed ACCESS_TOKEN to the headers dict
-                time.sleep(30)
-                if retry_attempts > EXPIRED_TOKEN_MAX_RETRY:
-                    logging.error("Unable to solve the 401 Error. Please debug - " + response.text)
-                    raise Exception("Unable to solve the 401 Error. Please debug - " + response.text)
-            elif response.status_code in [500, 502, 503, 504]: # Fitbit server is down or not responding ( most likely ):
-                logging.warning("Server Error encountered ( Code 5xx ): Retrying after 120 seconds....")
-                time.sleep(120)
-                if retry_attempts > SERVER_ERROR_MAX_RETRY:
-                    logging.error("Unable to solve the server Error. Retry limit exceed. Please debug - " + response.text)
-                    if SKIP_REQUEST_ON_SERVER_ERROR:
-                        logging.warning("Retry limit reached for server error : Skipping request -> " + url)
-                        return None
-            else:
-                logging.error("Fitbit API request failed. Status code: " + str(response.status_code) + " " + str(response.text) )
-                print(f"Fitbit API request failed. Status code: {response.status_code}", response.text)
-                response.raise_for_status()
-                return None
+fitbit_client = FitbitClient(
+    token_file_path=TOKEN_FILE_PATH,
+    fitbit_language=FITBIT_LANGUAGE,
+    client_id=client_id,
+    client_secret=client_secret,
+    server_error_max_retry=SERVER_ERROR_MAX_RETRY,
+    expired_token_max_retry=EXPIRED_TOKEN_MAX_RETRY,
+    skip_request_on_server_error=SKIP_REQUEST_ON_SERVER_ERROR,
+    logger=logging,
+)
 
-        except ConnectionError as e:
-            logging.error("Retrying in 5 minutes - Failed to connect to internet : " + str(e))
-            print("Retrying in 5 minutes - Failed to connect to internet : " + str(e))
-        retry_attempts += 1
-        time.sleep(30)
+# Generic request caller for all Fitbit endpoints.
+def request_data_from_fitbit(url, headers=None, params=None, data=None, request_type="get"):
+    global ACCESS_TOKEN
+    fitbit_client.access_token = ACCESS_TOKEN
+    response_data = fitbit_client.request_data(
+        url,
+        headers=headers,
+        params=params,
+        data=data,
+        request_type=request_type,
+    )
+    ACCESS_TOKEN = fitbit_client.access_token
+    return response_data
 
 # %% [markdown]
 # ## Token Refresh Management
 
 # %%
 def refresh_fitbit_tokens(client_id, client_secret, refresh_token):
-    logging.info("Attempting to refresh tokens...")
-    url = "https://api.fitbit.com/oauth2/token"
-    headers = {
-        "Authorization": "Basic " + base64.b64encode((client_id + ":" + client_secret).encode()).decode(),
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    data = {
-        "grant_type": "refresh_token",
-        "refresh_token": refresh_token
-    }
-    json_data = request_data_from_fitbit(url, headers=headers, data=data, request_type="post")
-    access_token = json_data["access_token"]
-    new_refresh_token = json_data["refresh_token"]
-    tokens = {
-        "access_token": access_token,
-        "refresh_token": new_refresh_token
-    }
-    with open(TOKEN_FILE_PATH, "w") as file:
-        json.dump(tokens, file)
-    logging.info("Fitbit token refresh successful!")
-    return access_token, new_refresh_token
+    return fitbit_client.refresh_fitbit_tokens(client_id, client_secret, refresh_token)
 
 def load_tokens_from_file():
-    with open(TOKEN_FILE_PATH, "r") as file:
-        tokens = json.load(file)
-        return tokens.get("access_token"), tokens.get("refresh_token")
+    return fitbit_client.load_tokens_from_file()
 
 def Get_New_Access_Token(client_id, client_secret):
-    try:
-        access_token, refresh_token = load_tokens_from_file()
-    except FileNotFoundError:
-        refresh_token = input("No token file found. Please enter a valid refresh token : ")
-    access_token, refresh_token = refresh_fitbit_tokens(client_id, client_secret, refresh_token)
+    global ACCESS_TOKEN
+    access_token = fitbit_client.get_new_access_token(client_id, client_secret)
+    ACCESS_TOKEN = access_token
     return access_token
 
-ACCESS_TOKEN = Get_New_Access_Token(client_id, client_secret)
+try:
+    ACCESS_TOKEN = Get_New_Access_Token(client_id, client_secret)
+except InvalidRefreshTokenError as err:
+    logging.error(str(err))
+    print(str(err))
+    raise SystemExit(1)
 
 # %% [markdown]
 # ## Influxdb Database Initialization
