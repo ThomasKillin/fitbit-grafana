@@ -13,6 +13,7 @@ from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
 from fitbit_fetch.influx_writer import InfluxWriter
+from fitbit_fetch.run_utils import build_date_list, write_and_reset_records
 
 # %% [markdown]
 # ## Variables
@@ -263,7 +264,7 @@ def fetch_latest_activities(end_date_str):
 
 # %%
 if AUTO_DATE_RANGE:
-    date_list = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
+    date_list = build_date_list(start_date, end_date)
     if len(date_list) > 3:
         logging.warn("Auto schedule update is not meant for more than 3 days at a time, please consider lowering the auto_update_date_range variable to aviod rate limit hit!")
     for date_str in date_list:
@@ -274,21 +275,19 @@ if AUTO_DATE_RANGE:
     get_daily_data_limit_none(start_date_str, end_date_str) # 1 query
     get_battery_level() # 1 query
     fetch_latest_activities(end_date_str) # 1 query
-    write_points_to_influxdb(collected_records)
-    collected_records = []
+    collected_records = write_and_reset_records(write_points_to_influxdb, collected_records)
 else:
     # Do Bulk update----------------------------------------------------------------------------------------------------------------------------
 
     schedule.every(1).hours.do(lambda : Get_New_Access_Token(client_id,client_secret)) # Auto-refresh tokens every 1 hour
     
-    date_list = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
+    date_list = build_date_list(start_date, end_date)
 
     def do_bulk_update(funcname, start_date, end_date):
         global collected_records
         funcname(start_date, end_date)
         schedule.run_pending()
-        write_points_to_influxdb(collected_records)
-        collected_records = []
+        collected_records = write_and_reset_records(write_points_to_influxdb, collected_records)
 
     fetch_latest_activities(date_list[-1])
     write_points_to_influxdb(collected_records)
@@ -325,8 +324,7 @@ if SCHEDULE_AUTO_UPDATE:
     while True:
         schedule.run_pending()
         if len(collected_records) != 0:
-            write_points_to_influxdb(collected_records)
-            collected_records = []
+            collected_records = write_and_reset_records(write_points_to_influxdb, collected_records)
         time.sleep(30)
         update_working_dates()
         
