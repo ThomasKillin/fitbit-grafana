@@ -97,13 +97,6 @@ def request_data_from_fitbit(url, headers=None, params=None, data=None, request_
 # %% [markdown]
 # ## Token Refresh Management
 
-# %%
-def refresh_fitbit_tokens(client_id, client_secret, refresh_token):
-    return fitbit_client.refresh_fitbit_tokens(client_id, client_secret, refresh_token)
-
-def load_tokens_from_file():
-    return fitbit_client.load_tokens_from_file()
-
 def Get_New_Access_Token(client_id, client_secret):
     global ACCESS_TOKEN
     access_token = fitbit_client.get_new_access_token(client_id, client_secret)
