@@ -1,55 +1,47 @@
 # %%
-import base64, requests, schedule, time, json, pytz, logging, os, sys
+import base64, requests, schedule, time, json, pytz, logging, sys
 from requests.exceptions import ConnectionError
 from datetime import datetime, timedelta
-# for influxdb 1.x
-from influxdb import InfluxDBClient
-from influxdb.exceptions import InfluxDBClientError
-# for influxdb 2.x
-from influxdb_client import InfluxDBClient as InfluxDBClient2
-# from influxdb_client.client.exceptions import InfluxDBError # possible duplicate
-from influxdb_client.client.write_api import SYNCHRONOUS
-# for influxdb 3.x
-from influxdb_client_3 import InfluxDBClient3, InfluxDBError
 # For XML processing
 import xml.etree.ElementTree as ET
+from fitbit_fetch.config import load_config
+from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
+from fitbit_fetch.influx_writer import InfluxWriter
 
 # %% [markdown]
 # ## Variables
 
 # %%
-FITBIT_LOG_FILE_PATH = os.environ.get("FITBIT_LOG_FILE_PATH") or "your/expected/log/file/location/path"
-TOKEN_FILE_PATH = os.environ.get("TOKEN_FILE_PATH") or "your/expected/token/file/location/path"
-OVERWRITE_LOG_FILE = True
-FITBIT_LANGUAGE = 'en_US'
-INFLUXDB_VERSION = os.environ.get("INFLUXDB_VERSION") or "1" # Version of influxdb in use, supported values are 1 or 2
-assert INFLUXDB_VERSION in ['1','2','3'], "Only InfluxDB version 1 or 2 or 3 is allowed - please put either 1 or 2 or 3"
-# Update these variables for influxdb 1.x versions
-INFLUXDB_HOST = os.environ.get("INFLUXDB_HOST") or 'localhost' # for influxdb 1.x
-INFLUXDB_PORT = os.environ.get("INFLUXDB_PORT") or 8086 # for influxdb 1.x 
-INFLUXDB_USERNAME = os.environ.get("INFLUXDB_USERNAME") or 'your_influxdb_username' # for influxdb 1.x
-INFLUXDB_PASSWORD = os.environ.get("INFLUXDB_PASSWORD") or 'your_influxdb_password' # for influxdb 1.x
-INFLUXDB_DATABASE = os.environ.get("INFLUXDB_DATABASE") or 'your_influxdb_database_name' # for influxdb 1.x
-# Update these variables for influxdb 2.x versions
-INFLUXDB_BUCKET = os.environ.get("INFLUXDB_BUCKET") or "your_bucket_name_here" # for influxdb 2.x
-INFLUXDB_ORG = os.environ.get("INFLUXDB_ORG") or "your_org_here" # for influxdb 2.x
-INFLUXDB_TOKEN = os.environ.get("INFLUXDB_TOKEN") or "your_token_here" # for influxdb 2.x
-INFLUXDB_URL = os.environ.get("INFLUXDB_URL") or "http://your_url_here:8086" # for influxdb 2.x
-INFLUXDB_V3_ACCESS_TOKEN = os.getenv("INFLUXDB_V3_ACCESS_TOKEN",'') # InfluxDB V3 Access token, required only for InfluxDB 3.x
+CONFIG = load_config()
+FITBIT_LOG_FILE_PATH = CONFIG.fitbit_log_file_path
+TOKEN_FILE_PATH = CONFIG.token_file_path
+OVERWRITE_LOG_FILE = CONFIG.overwrite_log_file
+FITBIT_LANGUAGE = CONFIG.fitbit_language
+INFLUXDB_VERSION = CONFIG.influxdb_version
+INFLUXDB_HOST = CONFIG.influxdb_host
+INFLUXDB_PORT = CONFIG.influxdb_port
+INFLUXDB_USERNAME = CONFIG.influxdb_username
+INFLUXDB_PASSWORD = CONFIG.influxdb_password
+INFLUXDB_DATABASE = CONFIG.influxdb_database
+INFLUXDB_BUCKET = CONFIG.influxdb_bucket
+INFLUXDB_ORG = CONFIG.influxdb_org
+INFLUXDB_TOKEN = CONFIG.influxdb_token
+INFLUXDB_URL = CONFIG.influxdb_url
+INFLUXDB_V3_ACCESS_TOKEN = CONFIG.influxdb_v3_access_token
 # MAKE SURE you set the application type to PERSONAL. Otherwise, you won't have access to intraday data series, resulting in 40X errors.
-client_id = os.environ.get("CLIENT_ID") or "your_application_client_ID" # Change this to your client ID
-client_secret = os.environ.get("CLIENT_SECRET") or "your_application_client_secret" # Change this to your client Secret
-DEVICENAME = os.environ.get("DEVICENAME") or "Your_Device_Name" # e.g. "Charge5"
+client_id = CONFIG.client_id
+client_secret = CONFIG.client_secret
+DEVICENAME = CONFIG.devicename
 ACCESS_TOKEN = "" # Empty Global variable initialization, will be replaced with a functional access code later using the refresh code
-MANUAL_START_DATE = os.getenv("MANUAL_START_DATE", None) # optional, in YYYY-MM-DD format, if you want to bulk update only from specific date
-MANUAL_END_DATE = os.getenv("MANUAL_END_DATE", datetime.today().strftime('%Y-%m-%d')) # optional, in YYYY-MM-DD format, if you want to bulk update until a specific date
-AUTO_DATE_RANGE = False if os.environ.get("AUTO_DATE_RANGE") in ['False','false','FALSE','f','F','no','No','NO','0'] else (not bool(MANUAL_START_DATE)) # Automatically selects date range from todays date and update_date_range variable
-auto_update_date_range = 1 # Days to go back from today for AUTO_DATE_RANGE *** DO NOT go above 2 - otherwise may break rate limit ***
-LOCAL_TIMEZONE = os.environ.get("LOCAL_TIMEZONE") or "Automatic" # set to "Automatic" for Automatic setup from User profile (if not mentioned here specifically).
-SCHEDULE_AUTO_UPDATE = True if AUTO_DATE_RANGE else False # Scheduling updates of data when script runs
-SERVER_ERROR_MAX_RETRY = 3
-EXPIRED_TOKEN_MAX_RETRY = 5
-SKIP_REQUEST_ON_SERVER_ERROR = True
+MANUAL_START_DATE = CONFIG.manual_start_date
+MANUAL_END_DATE = CONFIG.manual_end_date
+AUTO_DATE_RANGE = CONFIG.auto_date_range
+auto_update_date_range = CONFIG.auto_update_date_range # Days to go back from today for AUTO_DATE_RANGE *** DO NOT go above 2 - otherwise may break rate limit ***
+LOCAL_TIMEZONE = CONFIG.local_timezone # set to "Automatic" for Automatic setup from User profile (if not mentioned here specifically).
+SCHEDULE_AUTO_UPDATE = CONFIG.schedule_auto_update # Scheduling updates of data when script runs
+SERVER_ERROR_MAX_RETRY = CONFIG.server_error_max_retry
+EXPIRED_TOKEN_MAX_RETRY = CONFIG.expired_token_max_retry
+SKIP_REQUEST_ON_SERVER_ERROR = CONFIG.skip_request_on_server_error
 
 # %% [markdown]
 # ## Logging setup
@@ -178,67 +170,23 @@ ACCESS_TOKEN = Get_New_Access_Token(client_id, client_secret)
 # ## Influxdb Database Initialization
 
 # %%
-if INFLUXDB_VERSION == "2":
-    try:
-        influxdbclient = InfluxDBClient2(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
-        influxdb_write_api = influxdbclient.write_api(write_options=SYNCHRONOUS)
-    except InfluxDBError as err:
-        logging.error("Unable to connect with influxdb 2.x database! Aborted")
-        raise InfluxDBError("InfluxDB connection failed:" + str(err))
-elif INFLUXDB_VERSION == "1":
-    try:
-        influxdbclient = InfluxDBClient(host=INFLUXDB_HOST, port=INFLUXDB_PORT, username=INFLUXDB_USERNAME, password=INFLUXDB_PASSWORD)
-        influxdbclient.switch_database(INFLUXDB_DATABASE)
-    except InfluxDBClientError as err:
-        logging.error("Unable to connect with influxdb 1.x database! Aborted")
-        raise InfluxDBClientError("InfluxDB connection failed:" + str(err))
-elif INFLUXDB_VERSION == "3":
-    try:
-        influxdbclient = InfluxDBClient3(
-                host=f"http://{INFLUXDB_HOST}:{INFLUXDB_PORT}",
-                token=INFLUXDB_V3_ACCESS_TOKEN,
-                database=INFLUXDB_DATABASE
-                )
-        demo_point = {
-        'measurement': 'DemoPoint',
-        'time': '1970-01-01T00:00:00+00:00',
-        'tags': {'DemoTag': 'DemoTagValue'},
-        'fields': {'DemoField': 0}
-        }
-        # The following code block tests the connection by writing/overwriting a demo point. raises error and aborts if connection fails. 
-        influxdbclient.write(record=[demo_point])
-    except InfluxDBError as err:
-        logging.error("Unable to connect with influxdb 3.x database! Aborted")
-        raise InfluxDBClientError("InfluxDB connection failed:" + str(err))
-else:
-    logging.error("No matching version found. Supported values are 1 and 2 and 3")
-    raise InfluxDBClientError("No matching version found. Supported values are 1 and 2 and 3")
+influx_writer = InfluxWriter(
+    version=INFLUXDB_VERSION,
+    host=INFLUXDB_HOST,
+    port=INFLUXDB_PORT,
+    username=INFLUXDB_USERNAME,
+    password=INFLUXDB_PASSWORD,
+    database=INFLUXDB_DATABASE,
+    bucket=INFLUXDB_BUCKET,
+    org=INFLUXDB_ORG,
+    token=INFLUXDB_TOKEN,
+    url=INFLUXDB_URL,
+    v3_access_token=INFLUXDB_V3_ACCESS_TOKEN,
+    logger=logging,
+)
 
 def write_points_to_influxdb(points):
-    if INFLUXDB_VERSION == "2":
-        try:
-            influxdb_write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=points)
-            logging.info("Successfully updated influxdb database with new points")
-        except InfluxDBError as err:
-            logging.error("Unable to connect with influxdb 2.x database! " + str(err))
-            print("Influxdb connection failed! ", str(err))
-    elif INFLUXDB_VERSION == "1":
-        try:
-            influxdbclient.write_points(points)
-            logging.info("Successfully updated influxdb database with new points")
-        except InfluxDBClientError as err:
-            logging.error("Unable to connect with influxdb 1.x database! " + str(err))
-            print("Influxdb connection failed! ", str(err))
-    elif INFLUXDB_VERSION == "3":
-        try:
-            influxdbclient.write(record=points)
-            logging.info("Successfully updated influxdb database with new points")
-        except InfluxDBError as err:
-            logging.error("Unable to connect with influxdb 3.x database! " + str(err))
-            print("Influxdb connection failed! ", str(err))
-    else:
-        logging.error("No matching version found. Supported values are 1 and 2 and 3")
-        raise InfluxDBClientError("No matching version found. Supported values are 1 and 2 and 3")
+    influx_writer.write_points(points)
 
 # %% [markdown]
 # ## Set Timezone from profile data
@@ -253,16 +201,13 @@ else:
 # ## Selecting Dates for update
 
 # %%
-if AUTO_DATE_RANGE:
-    end_date = datetime.now(LOCAL_TIMEZONE)
-    start_date = end_date - timedelta(days=auto_update_date_range)
-    end_date_str = end_date.strftime("%Y-%m-%d")
-    start_date_str = start_date.strftime("%Y-%m-%d")
-else:
-    start_date_str = MANUAL_START_DATE or input("Enter start date in YYYY-MM-DD format : ")
-    end_date_str = MANUAL_END_DATE or input("Enter end date in YYYY-MM-DD format : ")
-    start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
-    end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+start_date, end_date, start_date_str, end_date_str = build_date_range(
+    local_timezone=LOCAL_TIMEZONE,
+    auto_date_range=AUTO_DATE_RANGE,
+    auto_update_date_range=auto_update_date_range,
+    manual_start_date=MANUAL_START_DATE,
+    manual_end_date=MANUAL_END_DATE,
+)
 
 # %% [markdown]
 # ## Setting up functions for Requesting data from server
@@ -272,10 +217,10 @@ collected_records = []
 
 def update_working_dates():
     global end_date, start_date, end_date_str, start_date_str
-    end_date = datetime.now(LOCAL_TIMEZONE)
-    start_date = end_date - timedelta(days=auto_update_date_range)
-    end_date_str = end_date.strftime("%Y-%m-%d")
-    start_date_str = start_date.strftime("%Y-%m-%d")
+    start_date, end_date, start_date_str, end_date_str = refresh_auto_date_range(
+        local_timezone=LOCAL_TIMEZONE,
+        auto_update_date_range=auto_update_date_range,
+    )
 
 # Get last synced battery level of the device
 def get_battery_level():
@@ -760,17 +705,6 @@ else:
     schedule.every(1).hours.do(lambda : Get_New_Access_Token(client_id,client_secret)) # Auto-refresh tokens every 1 hour
     
     date_list = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
-
-    def yield_dates_with_gap(date_list, gap):
-        start_index = -1*gap
-        while start_index < len(date_list)-1:
-            start_index  = start_index + gap
-            end_index = start_index+gap
-            if end_index > len(date_list) - 1:
-                end_index = len(date_list) - 1
-            if start_index > len(date_list) - 1:
-                break
-            yield (date_list[start_index],date_list[end_index])
 
     def do_bulk_update(funcname, start_date, end_date):
         global collected_records
