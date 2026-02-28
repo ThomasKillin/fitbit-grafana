@@ -35,6 +35,32 @@ A script to fetch data from Fitbit servers using their API and store the data in
 
 ✅ Available Influxdb database measurements and schema is available [here](extra/influxdb_schema.md)
 
+## Code Structure (Refactor Notes)
+
+The project now uses a modular layout while keeping `Fitbit_Fetch.py` as the entrypoint:
+
+- `fitbit_fetch/config.py`: environment loading and validation
+- `fitbit_fetch/fitbit_client.py`: Fitbit API calls, retries, token refresh flow
+- `fitbit_fetch/influx_writer.py`: InfluxDB v1/v2/v3 initialization and writes
+- `fitbit_fetch/collectors_*.py`: metric-specific data collectors
+- `fitbit_fetch/runner.py`: startup/bulk/scheduled orchestration flows
+- `fitbit_fetch/state.py`: mutable runtime state container
+- `fitbit_fetch/services.py`: runtime dependency/service container
+- `fitbit_fetch/run_utils.py` and `fitbit_fetch/date_utils.py`: orchestration/date helpers
+
+### Quick regression checks
+
+```bash
+docker run --rm -v "${PWD}:/app" -w /app python:3.10-slim python -m unittest discover -s tests -p "test_*.py" -v
+docker build -t fitbit-grafana-refactor-test .
+```
+
+### Optional rate-limit tuning
+
+When Fitbit returns HTTP `429`, you can tune the extra wait buffer via:
+
+- `FITBIT_RATE_LIMIT_BUFFER_SECONDS` (default: `300`)
+
 ## Install with Docker (Recommended)
 
 1. Follow this [guide](https://dev.fitbit.com/build/reference/web-api/developer-guide/getting-started/) to create an application. ❗ **The Fitbit `Oauth 2.0 Application Type` selection must be `personal` for intraday data access** ❗- Otherwise you might encounter `KeyError: 'activities-heart-intraday'` when fetching intraday Heart rate or steps data.
