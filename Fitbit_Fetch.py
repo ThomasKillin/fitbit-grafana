@@ -73,20 +73,12 @@ logging.basicConfig(
 # ## Setting up base API Caller function
 
 # %%
-fitbit_client = FitbitClient(
-    token_file_path=TOKEN_FILE_PATH,
-    fitbit_language=FITBIT_LANGUAGE,
-    rate_limit_buffer_seconds=FITBIT_RATE_LIMIT_BUFFER_SECONDS,
-    client_id=client_id,
-    client_secret=client_secret,
-    server_error_max_retry=SERVER_ERROR_MAX_RETRY,
-    expired_token_max_retry=EXPIRED_TOKEN_MAX_RETRY,
-    skip_request_on_server_error=SKIP_REQUEST_ON_SERVER_ERROR,
-    logger=logging,
-)
+fitbit_client = None
 
 # Generic request caller for all Fitbit endpoints.
 def request_data_from_fitbit(url, headers=None, params=None, data=None, request_type="get"):
+    if fitbit_client is None:
+        raise RuntimeError("Fitbit client is not initialized")
     fitbit_client.access_token = APP_STATE.access_token
     response_data = fitbit_client.request_data(
         url,
@@ -102,6 +94,8 @@ def request_data_from_fitbit(url, headers=None, params=None, data=None, request_
 # ## Token Refresh Management
 
 def Get_New_Access_Token(client_id, client_secret):
+    if fitbit_client is None:
+        raise RuntimeError("Fitbit client is not initialized")
     access_token = fitbit_client.get_new_access_token(client_id, client_secret)
     APP_STATE.access_token = access_token
     return access_token
@@ -110,23 +104,40 @@ def Get_New_Access_Token(client_id, client_secret):
 # ## Influxdb Database Initialization
 
 # %%
-influx_writer = InfluxWriter(
-    version=INFLUXDB_VERSION,
-    host=INFLUXDB_HOST,
-    port=INFLUXDB_PORT,
-    username=INFLUXDB_USERNAME,
-    password=INFLUXDB_PASSWORD,
-    database=INFLUXDB_DATABASE,
-    bucket=INFLUXDB_BUCKET,
-    org=INFLUXDB_ORG,
-    token=INFLUXDB_TOKEN,
-    url=INFLUXDB_URL,
-    v3_access_token=INFLUXDB_V3_ACCESS_TOKEN,
-    logger=logging,
-)
+influx_writer = None
 
 def write_points_to_influxdb(points):
+    if influx_writer is None:
+        raise RuntimeError("Influx writer is not initialized")
     influx_writer.write_points(points)
+
+def initialize_clients():
+    global fitbit_client, influx_writer
+    fitbit_client = FitbitClient(
+        token_file_path=TOKEN_FILE_PATH,
+        fitbit_language=FITBIT_LANGUAGE,
+        rate_limit_buffer_seconds=FITBIT_RATE_LIMIT_BUFFER_SECONDS,
+        client_id=client_id,
+        client_secret=client_secret,
+        server_error_max_retry=SERVER_ERROR_MAX_RETRY,
+        expired_token_max_retry=EXPIRED_TOKEN_MAX_RETRY,
+        skip_request_on_server_error=SKIP_REQUEST_ON_SERVER_ERROR,
+        logger=logging,
+    )
+    influx_writer = InfluxWriter(
+        version=INFLUXDB_VERSION,
+        host=INFLUXDB_HOST,
+        port=INFLUXDB_PORT,
+        username=INFLUXDB_USERNAME,
+        password=INFLUXDB_PASSWORD,
+        database=INFLUXDB_DATABASE,
+        bucket=INFLUXDB_BUCKET,
+        org=INFLUXDB_ORG,
+        token=INFLUXDB_TOKEN,
+        url=INFLUXDB_URL,
+        v3_access_token=INFLUXDB_V3_ACCESS_TOKEN,
+        logger=logging,
+    )
 
 def initialize_runtime_state():
     try:
@@ -261,6 +272,7 @@ def fetch_latest_activities(end_date_str):
 
 
 def main():
+    initialize_clients()
     initialize_runtime_state()
 
     # %% [markdown]
