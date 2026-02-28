@@ -34,6 +34,16 @@ A script to fetch data from Fitbit servers using their API and store the data in
 - Rate limit aware data collection
 
 ✅ Available Influxdb database measurements and schema is available [here](extra/influxdb_schema.md)
+✅ Dashboard metric catalog (with `Direct` vs `Derived` classification) is available [here](extra/dashboard_metrics_catalog.md)
+
+### Dashboard Clarity Rule
+
+When adding new panels, separate them into two sections:
+
+- `Direct Measurements`
+- `Derived Measurements`
+
+This keeps API-native metrics distinct from computed analytics and makes dashboard interpretation easier.
 
 ## Code Structure (Refactor Notes)
 
