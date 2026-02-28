@@ -13,6 +13,7 @@ from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
 from fitbit_fetch.influx_writer import InfluxWriter
+from fitbit_fetch.runner import run_scheduled_auto_update_loop, run_startup_or_bulk_update
 from fitbit_fetch.run_utils import build_date_list, write_and_reset_records
 
 # %% [markdown]
@@ -160,6 +161,13 @@ start_date, end_date, start_date_str, end_date_str = build_date_range(
 # %%
 collected_records = []
 
+def get_collected_records():
+    return collected_records
+
+def set_collected_records(records):
+    global collected_records
+    collected_records = records
+
 def update_working_dates():
     global end_date, start_date, end_date_str, start_date_str
     start_date, end_date, start_date_str, end_date_str = refresh_auto_date_range(
@@ -263,46 +271,31 @@ def fetch_latest_activities(end_date_str):
 # ## Call the functions one time as a startup update OR do switch to bulk update mode
 
 # %%
-if AUTO_DATE_RANGE:
-    date_list = build_date_list(start_date, end_date)
-    if len(date_list) > 3:
-        logging.warn("Auto schedule update is not meant for more than 3 days at a time, please consider lowering the auto_update_date_range variable to aviod rate limit hit!")
-    for date_str in date_list:
-        get_intraday_data_limit_1d(date_str, [('heart','HeartRate_Intraday','1sec'),('steps','Steps_Intraday','1min')]) # 2 queries x number of dates ( default 2)
-    get_daily_data_limit_30d(start_date_str, end_date_str) # 3 queries
-    get_daily_data_limit_100d(start_date_str, end_date_str) # 1 query
-    get_daily_data_limit_365d(start_date_str, end_date_str) # 8 queries
-    get_daily_data_limit_none(start_date_str, end_date_str) # 1 query
-    get_battery_level() # 1 query
-    fetch_latest_activities(end_date_str) # 1 query
-    collected_records = write_and_reset_records(write_points_to_influxdb, collected_records)
-else:
-    # Do Bulk update----------------------------------------------------------------------------------------------------------------------------
-
-    schedule.every(1).hours.do(lambda : Get_New_Access_Token(client_id,client_secret)) # Auto-refresh tokens every 1 hour
-    
-    date_list = build_date_list(start_date, end_date)
-
-    def do_bulk_update(funcname, start_date, end_date):
-        global collected_records
-        funcname(start_date, end_date)
-        schedule.run_pending()
-        collected_records = write_and_reset_records(write_points_to_influxdb, collected_records)
-
-    fetch_latest_activities(date_list[-1])
-    write_points_to_influxdb(collected_records)
-    do_bulk_update(get_daily_data_limit_none, date_list[0], date_list[-1])
-    for date_range in yield_dates_with_gap(date_list, 360):
-        do_bulk_update(get_daily_data_limit_365d, date_range[0], date_range[1])
-    for date_range in yield_dates_with_gap(date_list, 98):
-        do_bulk_update(get_daily_data_limit_100d, date_range[0], date_range[1])
-    for date_range in yield_dates_with_gap(date_list, 28):
-        do_bulk_update(get_daily_data_limit_30d, date_range[0], date_range[1])
-    for single_day in date_list:
-        do_bulk_update(get_intraday_data_limit_1d, single_day, [('heart','HeartRate_Intraday','1sec'),('steps','Steps_Intraday','1min')])
-
-    logging.info("Success : Bulk update complete for " + start_date_str + " to " + end_date_str)
-    print("Bulk update complete!")
+run_startup_or_bulk_update(
+    auto_date_range=AUTO_DATE_RANGE,
+    start_date=start_date,
+    end_date=end_date,
+    start_date_str=start_date_str,
+    end_date_str=end_date_str,
+    schedule_module=schedule,
+    logger=logging,
+    get_new_access_token=Get_New_Access_Token,
+    client_id=client_id,
+    client_secret=client_secret,
+    build_date_list=build_date_list,
+    get_intraday_data_limit_1d=get_intraday_data_limit_1d,
+    get_daily_data_limit_30d=get_daily_data_limit_30d,
+    get_daily_data_limit_100d=get_daily_data_limit_100d,
+    get_daily_data_limit_365d=get_daily_data_limit_365d,
+    get_daily_data_limit_none=get_daily_data_limit_none,
+    get_battery_level=get_battery_level,
+    fetch_latest_activities=fetch_latest_activities,
+    write_points_to_influxdb=write_points_to_influxdb,
+    write_and_reset_records=write_and_reset_records,
+    yield_dates_with_gap=yield_dates_with_gap,
+    get_collected_records=get_collected_records,
+    set_collected_records=set_collected_records,
+)
 
 # %% [markdown]
 # ## Schedule functions at specific intervals (Ongoing continuous update)
@@ -310,24 +303,29 @@ else:
 # %%
 # Ongoing continuous update of data
 if SCHEDULE_AUTO_UPDATE:
-    
-    schedule.every(1).hours.do(lambda : Get_New_Access_Token(client_id,client_secret)) # Auto-refresh tokens every 1 hour
-    schedule.every(3).minutes.do( lambda : get_intraday_data_limit_1d(end_date_str, [('heart','HeartRate_Intraday','1sec'),('steps','Steps_Intraday','1min')] )) # Auto-refresh detailed HR and steps
-    schedule.every(1).hours.do( lambda : get_intraday_data_limit_1d((datetime.strptime(end_date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d"), [('heart','HeartRate_Intraday','1sec'),('steps','Steps_Intraday','1min')] )) # Refilling any missing data on previous day end of night due to fitbit sync delay ( see issue #10 )
-    schedule.every(20).minutes.do(get_battery_level) # Auto-refresh battery level
-    schedule.every(3).hours.do(lambda : get_daily_data_limit_30d(start_date_str, end_date_str))
-    schedule.every(4).hours.do(lambda : get_daily_data_limit_100d(start_date_str, end_date_str))
-    schedule.every(6).hours.do( lambda : get_daily_data_limit_365d(start_date_str, end_date_str))
-    schedule.every(6).hours.do(lambda : get_daily_data_limit_none(start_date_str, end_date_str))
-    schedule.every(1).hours.do( lambda : fetch_latest_activities(end_date_str))
-
-    while True:
-        schedule.run_pending()
-        if len(collected_records) != 0:
-            collected_records = write_and_reset_records(write_points_to_influxdb, collected_records)
-        time.sleep(30)
-        update_working_dates()
-        
+    run_scheduled_auto_update_loop(
+        schedule_module=schedule,
+        get_new_access_token=Get_New_Access_Token,
+        client_id=client_id,
+        client_secret=client_secret,
+        get_intraday_data_limit_1d=get_intraday_data_limit_1d,
+        get_battery_level=get_battery_level,
+        get_daily_data_limit_30d=get_daily_data_limit_30d,
+        get_daily_data_limit_100d=get_daily_data_limit_100d,
+        get_daily_data_limit_365d=get_daily_data_limit_365d,
+        get_daily_data_limit_none=get_daily_data_limit_none,
+        fetch_latest_activities=fetch_latest_activities,
+        get_start_date_str=lambda: start_date_str,
+        get_end_date_str=lambda: end_date_str,
+        datetime_cls=datetime,
+        timedelta_cls=timedelta,
+        get_collected_records=get_collected_records,
+        set_collected_records=set_collected_records,
+        write_points_to_influxdb=write_points_to_influxdb,
+        write_and_reset_records=write_and_reset_records,
+        update_working_dates=update_working_dates,
+        time_module=time,
+    )
 
 
 
