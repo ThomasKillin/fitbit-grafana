@@ -93,7 +93,7 @@ Recommended naming style for panel titles:
 | Training load | `Derived TrainingLoad` | `daily_load`, `acute_7d`, `chronic_28d`, `load_ratio` | Latest HR zone durations | Implemented (feature-flagged) |
 | Recovery score | `Derived RecoveryScore` | `score`, `sleep_component`, `hrv_component`, `rhr_component`, `strain_component` | Sleep Summary, HRV, RestingHR, HR zones | Implemented (feature-flagged) |
 | Pipeline freshness | `Derived PipelineHealth` | `last_success_epoch`, `minutes_since_success`, `record_count_last_run` | Runtime fetch/write state | Implemented (default on) |
-| Cardio fitness / VO2 trend | `Derived CardioFitness` (proposed) | `vo2_estimate`, `source`, `confidence` | Fitbit/Pixel VO2 estimate sources | Planned |
+| Cardio fitness / VO2 trend | `Derived CardioFitness` | `vo2_estimate`, `source`, `confidence` | RestingHR-based heuristic (v1) | Implemented (feature-flagged) |
 
 ---
 
@@ -169,19 +169,25 @@ Recommended naming style for panel titles:
 - Caveats:
   - `minutes_since_success` is currently write-time only; elapsed-time behavior is better computed in Grafana query expressions.
 
-### `Derived CardioFitness` (Proposed)
+### `Derived CardioFitness`
 
 - What it is: A trend metric for estimated VO2/cardiorespiratory fitness (for example from Pixel Watch/Fitbit sources).
-- How it would be derived:
-  - Ingest available VO2/cardio-fitness estimate from source APIs.
-  - Persist estimate value plus metadata (`source`, `confidence`).
+- How it is derived (current v1 logic):
+  - Uses latest `RestingHR.value`.
+  - Applies a simple trend heuristic:
+    - `vo2_estimate = clamp(90 - (0.8 * resting_hr), 20, 70)`
+  - Writes:
+    - `source = heuristic_rhr`
+    - `confidence = 0.4`
 - What it means:
-  - Higher value generally indicates better aerobic capacity.
+  - Higher estimated value generally indicates better aerobic capacity trend.
 - How it is useful:
-  - Long-term fitness trend tracking alongside training load and resting metrics.
+  - Long-term cardio trend tracking alongside training load and recovery metrics.
+  - Gives a visible placeholder metric until device-native VO2 endpoints are integrated.
 - Caveats:
-  - Availability and calculation method depend on source device/vendor.
+  - v1 is intentionally heuristic and based only on resting HR.
   - Should be interpreted as trend guidance, not lab-grade VO2 max testing.
+  - Future versions should prefer device/source-native VO2 estimates when available.
 
 ---
 

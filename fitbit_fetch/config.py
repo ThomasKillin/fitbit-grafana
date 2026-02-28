@@ -41,6 +41,7 @@ class AppConfig:
     enable_derived_pipeline_health: bool
     enable_derived_recovery_score: bool
     enable_derived_training_load: bool
+    enable_derived_cardio_fitness: bool
 
 
 def _is_false_env(value: str | None) -> bool:
@@ -96,4 +97,5 @@ def load_config() -> AppConfig:
         enable_derived_pipeline_health=_env_bool("ENABLE_DERIVED_PIPELINE_HEALTH", True),
         enable_derived_recovery_score=_env_bool("ENABLE_DERIVED_RECOVERY_SCORE", False),
         enable_derived_training_load=_env_bool("ENABLE_DERIVED_TRAINING_LOAD", False),
+        enable_derived_cardio_fitness=_env_bool("ENABLE_DERIVED_CARDIO_FITNESS", False),
     )

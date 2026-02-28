@@ -65,6 +65,21 @@
 
 ---
 
+### Measurement: `Derived CardioFitness`
+
+| Field Key | Field Type |
+| --- | --- |
+| `vo2_estimate` | float |
+| `source` | string |
+| `confidence` | float |
+
+| Tag Key | Tag Type |
+| --- | --- |
+| `Device` | string |
+| `MetricClass` | string |
+
+---
+
 ### Measurement: `Derived RecoveryScore`
 
 | Field Key | Field Type |

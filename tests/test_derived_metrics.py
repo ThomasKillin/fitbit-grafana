@@ -13,6 +13,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_pipeline_health=True,
             enable_recovery_score=False,
             enable_training_load=False,
+            enable_cardio_fitness=False,
         )
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived PipelineHealth")
@@ -33,11 +34,29 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_pipeline_health=False,
             enable_recovery_score=True,
             enable_training_load=True,
+            enable_cardio_fitness=False,
         )
         measurements = {point["measurement"] for point in derived}
         self.assertIn("Derived TrainingLoad", measurements)
         self.assertIn("Derived RecoveryScore", measurements)
         self.assertTrue(all(point["tags"]["MetricClass"] == "Derived" for point in derived))
+
+    def test_cardio_fitness_point_when_resting_hr_present(self):
+        points = [{"measurement": "RestingHR", "time": "2026-02-28T00:00:00+00:00", "fields": {"value": 55}}]
+        derived = build_derived_points(
+            points=points,
+            devicename="ChargeX",
+            end_date_str="2026-02-28",
+            enable_pipeline_health=False,
+            enable_recovery_score=False,
+            enable_training_load=False,
+            enable_cardio_fitness=True,
+        )
+        self.assertEqual(len(derived), 1)
+        self.assertEqual(derived[0]["measurement"], "Derived CardioFitness")
+        self.assertEqual(derived[0]["fields"]["source"], "heuristic_rhr")
+        self.assertEqual(derived[0]["fields"]["confidence"], 0.4)
+        self.assertGreater(derived[0]["fields"]["vo2_estimate"], 0)
 
 
 if __name__ == "__main__":

@@ -57,6 +57,24 @@ def _derive_recovery_score(points) -> dict | None:
     }
 
 
+def _derive_cardio_fitness(points) -> dict | None:
+    latest_rhr = _latest_measurement(points, "RestingHR")
+    if latest_rhr is None:
+        return None
+
+    resting_hr = float((latest_rhr or {}).get("fields", {}).get("value", 0) or 0)
+    if resting_hr <= 0:
+        return None
+
+    # Heuristic VO2 estimate from resting HR for trend-only use.
+    vo2_estimate = _clamp(90.0 - (0.8 * resting_hr), 20.0, 70.0)
+    return {
+        "vo2_estimate": round(vo2_estimate, 2),
+        "source": "heuristic_rhr",
+        "confidence": 0.4,
+    }
+
+
 def build_derived_points(
     *,
     points,
@@ -65,6 +83,7 @@ def build_derived_points(
     enable_pipeline_health: bool,
     enable_recovery_score: bool,
     enable_training_load: bool,
+    enable_cardio_fitness: bool,
 ):
     derived_points = []
     metric_time = datetime.fromisoformat(end_date_str + "T00:00:00").isoformat() + "+00:00"
@@ -95,6 +114,18 @@ def build_derived_points(
                     "time": metric_time,
                     "tags": {"Device": devicename, "MetricClass": "Derived"},
                     "fields": recovery_fields,
+                }
+            )
+
+    if enable_cardio_fitness:
+        cardio_fitness_fields = _derive_cardio_fitness(points)
+        if cardio_fitness_fields is not None:
+            derived_points.append(
+                {
+                    "measurement": "Derived CardioFitness",
+                    "time": metric_time,
+                    "tags": {"Device": devicename, "MetricClass": "Derived"},
+                    "fields": cardio_fitness_fields,
                 }
             )
 

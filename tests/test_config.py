@@ -40,6 +40,7 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(config.enable_derived_pipeline_health)
         self.assertFalse(config.enable_derived_recovery_score)
         self.assertFalse(config.enable_derived_training_load)
+        self.assertFalse(config.enable_derived_cardio_fitness)
 
     def test_derived_feature_flags_override(self):
         with patch.dict(
@@ -48,6 +49,7 @@ class ConfigTests(unittest.TestCase):
                 "ENABLE_DERIVED_PIPELINE_HEALTH": "false",
                 "ENABLE_DERIVED_RECOVERY_SCORE": "true",
                 "ENABLE_DERIVED_TRAINING_LOAD": "1",
+                "ENABLE_DERIVED_CARDIO_FITNESS": "true",
             },
             clear=True,
         ):
@@ -55,6 +57,7 @@ class ConfigTests(unittest.TestCase):
         self.assertFalse(config.enable_derived_pipeline_health)
         self.assertTrue(config.enable_derived_recovery_score)
         self.assertTrue(config.enable_derived_training_load)
+        self.assertTrue(config.enable_derived_cardio_fitness)
 
 
 if __name__ == "__main__":
