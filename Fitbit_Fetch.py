@@ -25,6 +25,7 @@ FITBIT_LOG_FILE_PATH = CONFIG.fitbit_log_file_path
 TOKEN_FILE_PATH = CONFIG.token_file_path
 OVERWRITE_LOG_FILE = CONFIG.overwrite_log_file
 FITBIT_LANGUAGE = CONFIG.fitbit_language
+FITBIT_RATE_LIMIT_BUFFER_SECONDS = CONFIG.fitbit_rate_limit_buffer_seconds
 INFLUXDB_VERSION = CONFIG.influxdb_version
 INFLUXDB_HOST = CONFIG.influxdb_host
 INFLUXDB_PORT = CONFIG.influxdb_port
@@ -74,6 +75,7 @@ logging.basicConfig(
 fitbit_client = FitbitClient(
     token_file_path=TOKEN_FILE_PATH,
     fitbit_language=FITBIT_LANGUAGE,
+    rate_limit_buffer_seconds=FITBIT_RATE_LIMIT_BUFFER_SECONDS,
     client_id=client_id,
     client_secret=client_secret,
     server_error_max_retry=SERVER_ERROR_MAX_RETRY,

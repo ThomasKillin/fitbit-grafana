@@ -29,6 +29,11 @@ class ConfigTests(unittest.TestCase):
             config = load_config()
         self.assertEqual(config.influxdb_version, "3")
 
+    def test_rate_limit_buffer_override(self):
+        with patch.dict(os.environ, {"FITBIT_RATE_LIMIT_BUFFER_SECONDS": "120"}, clear=True):
+            config = load_config()
+        self.assertEqual(config.fitbit_rate_limit_buffer_seconds, 120)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -18,6 +18,7 @@ class FitbitClient:
         *,
         token_file_path: str,
         fitbit_language: str,
+        rate_limit_buffer_seconds: int,
         client_id: str,
         client_secret: str,
         server_error_max_retry: int,
@@ -27,6 +28,7 @@ class FitbitClient:
     ) -> None:
         self.token_file_path = token_file_path
         self.fitbit_language = fitbit_language
+        self.rate_limit_buffer_seconds = rate_limit_buffer_seconds
         self.client_id = client_id
         self.client_secret = client_secret
         self.server_error_max_retry = server_error_max_retry
@@ -63,7 +65,7 @@ class FitbitClient:
                         return response
                     return response.json()
                 elif response.status_code == 429:  # API Limit reached
-                    retry_after = int(response.headers["Fitbit-Rate-Limit-Reset"]) + 300
+                    retry_after = int(response.headers["Fitbit-Rate-Limit-Reset"]) + self.rate_limit_buffer_seconds
                     self.logger.warning(
                         "Fitbit API limit reached. Error code : "
                         + str(response.status_code)

@@ -14,6 +14,7 @@ class AppConfig:
     token_file_path: str
     overwrite_log_file: bool
     fitbit_language: str
+    fitbit_rate_limit_buffer_seconds: int
     influxdb_version: str
     influxdb_host: str
     influxdb_port: str
@@ -58,6 +59,7 @@ def load_config() -> AppConfig:
         token_file_path=os.environ.get("TOKEN_FILE_PATH") or "your/expected/token/file/location/path",
         overwrite_log_file=True,
         fitbit_language="en_US",
+        fitbit_rate_limit_buffer_seconds=int(os.environ.get("FITBIT_RATE_LIMIT_BUFFER_SECONDS") or 300),
         influxdb_version=influxdb_version,
         influxdb_host=os.environ.get("INFLUXDB_HOST") or "localhost",
         influxdb_port=os.environ.get("INFLUXDB_PORT") or "8086",
