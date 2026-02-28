@@ -71,6 +71,17 @@ When Fitbit returns HTTP `429`, you can tune the extra wait buffer via:
 
 - `FITBIT_RATE_LIMIT_BUFFER_SECONDS` (default: `300`)
 
+### Optional derived-metric toggles
+
+Derived measurements are intentionally separate from direct Fitbit measurements.
+You can enable/disable them with environment flags:
+
+- `ENABLE_DERIVED_PIPELINE_HEALTH` (default: `true`)
+- `ENABLE_DERIVED_RECOVERY_SCORE` (default: `false`)
+- `ENABLE_DERIVED_TRAINING_LOAD` (default: `false`)
+
+If enabled, these measurements are written with `Derived ...` prefixes so they are easy to group under a dedicated `Derived Measurements` section in Grafana.
+
 ## Install with Docker (Recommended)
 
 1. Follow this [guide](https://dev.fitbit.com/build/reference/web-api/developer-guide/getting-started/) to create an application. ❗ **The Fitbit `Oauth 2.0 Application Type` selection must be `personal` for intraday data access** ❗- Otherwise you might encounter `KeyError: 'activities-heart-intraday'` when fetching intraday Heart rate or steps data.
@@ -122,6 +133,10 @@ services:
       - FITBIT_LOG_FILE_PATH=/app/logs/fitbit.log
       - TOKEN_FILE_PATH=/app/tokens/fitbit.token
       - AUTO_DATE_RANGE=True # Used for bulk update, read Historical Data Update section in README
+      - FITBIT_RATE_LIMIT_BUFFER_SECONDS=300 # extra buffer after Fitbit 429 reset header
+      - ENABLE_DERIVED_PIPELINE_HEALTH=True # Derived PipelineHealth measurement
+      - ENABLE_DERIVED_RECOVERY_SCORE=False # Derived RecoveryScore measurement
+      - ENABLE_DERIVED_TRAINING_LOAD=False # Derived TrainingLoad measurement
       - INFLUXDB_VERSION=1
       - INFLUXDB_HOST=influxdb
       - INFLUXDB_PORT=8086
