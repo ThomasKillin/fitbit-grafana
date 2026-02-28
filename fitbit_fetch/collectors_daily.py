@@ -247,6 +247,150 @@ def collect_daily_data_limit_100d(
         logger.error("Recording failed : Sleep data for date " + start_date_str + " to " + end_date_str)
 
 
+def collect_daily_data_limit_365d(
+    *,
+    request_data_from_fitbit,
+    start_date_str,
+    end_date_str,
+    local_timezone,
+    devicename,
+    collected_records,
+    logger,
+):
+    activity_minutes_list = [
+        "minutesSedentary",
+        "minutesLightlyActive",
+        "minutesFairlyActive",
+        "minutesVeryActive",
+    ]
+    for activity_type in activity_minutes_list:
+        activity_minutes_data_list = request_data_from_fitbit(
+            "https://api.fitbit.com/1/user/-/activities/tracker/"
+            + activity_type
+            + "/date/"
+            + start_date_str
+            + "/"
+            + end_date_str
+            + ".json"
+        ).get("activities-tracker-" + activity_type)
+        if activity_minutes_data_list is not None:
+            for data in activity_minutes_data_list:
+                log_time = datetime.fromisoformat(data["dateTime"] + "T" + "00:00:00")
+                utc_time = local_timezone.localize(log_time).astimezone(pytz.utc).isoformat()
+                collected_records.append(
+                    {
+                        "measurement": "Activity Minutes",
+                        "time": utc_time,
+                        "tags": {
+                            "Device": devicename,
+                        },
+                        "fields": {
+                            activity_type: int(data["value"]),
+                        },
+                    }
+                )
+            logger.info("Recorded " + activity_type + "for date " + start_date_str + " to " + end_date_str)
+        else:
+            logger.error("Recording failed : " + activity_type + " for date " + start_date_str + " to " + end_date_str)
+
+    activity_others_list = ["distance", "calories", "steps"]
+    for activity_type in activity_others_list:
+        activity_others_data_list = request_data_from_fitbit(
+            "https://api.fitbit.com/1/user/-/activities/tracker/"
+            + activity_type
+            + "/date/"
+            + start_date_str
+            + "/"
+            + end_date_str
+            + ".json"
+        ).get("activities-tracker-" + activity_type)
+        if activity_others_data_list is not None:
+            for data in activity_others_data_list:
+                log_time = datetime.fromisoformat(data["dateTime"] + "T" + "00:00:00")
+                utc_time = local_timezone.localize(log_time).astimezone(pytz.utc).isoformat()
+                activity_name = "Total Steps" if activity_type == "steps" else activity_type
+                collected_records.append(
+                    {
+                        "measurement": activity_name,
+                        "time": utc_time,
+                        "tags": {
+                            "Device": devicename,
+                        },
+                        "fields": {
+                            "value": float(data["value"]),
+                        },
+                    }
+                )
+            logger.info("Recorded " + activity_name + " for date " + start_date_str + " to " + end_date_str)
+        else:
+            logger.error("Recording failed : " + activity_name + " for date " + start_date_str + " to " + end_date_str)
+
+    hr_zones_data_list = request_data_from_fitbit(
+        "https://api.fitbit.com/1/user/-/activities/heart/date/" + start_date_str + "/" + end_date_str + ".json"
+    ).get("activities-heart")
+    if hr_zones_data_list is not None:
+        for data in hr_zones_data_list:
+            log_time = datetime.fromisoformat(data["dateTime"] + "T" + "00:00:00")
+            utc_time = local_timezone.localize(log_time).astimezone(pytz.utc).isoformat()
+            collected_records.append(
+                {
+                    "measurement": "HR zones",
+                    "time": utc_time,
+                    "tags": {
+                        "Device": devicename,
+                    },
+                    "fields": {
+                        "Normal": data["value"]["heartRateZones"][0].get("minutes", 0),
+                        "Fat Burn": data["value"]["heartRateZones"][1].get("minutes", 0),
+                        "Cardio": data["value"]["heartRateZones"][2].get("minutes", 0),
+                        "Peak": data["value"]["heartRateZones"][3].get("minutes", 0),
+                    },
+                }
+            )
+            if "restingHeartRate" in data["value"]:
+                collected_records.append(
+                    {
+                        "measurement": "RestingHR",
+                        "time": utc_time,
+                        "tags": {
+                            "Device": devicename,
+                        },
+                        "fields": {
+                            "value": data["value"]["restingHeartRate"],
+                        },
+                    }
+                )
+        logger.info("Recorded RHR and HR zones for date " + start_date_str + " to " + end_date_str)
+    else:
+        logger.error("Recording failed : RHR and HR zones for date " + start_date_str + " to " + end_date_str)
+
+    hr_zone_minutes_list = request_data_from_fitbit(
+        "https://api.fitbit.com/1/user/-/activities/active-zone-minutes/date/"
+        + start_date_str
+        + "/"
+        + end_date_str
+        + ".json"
+    ).get("activities-active-zone-minutes")
+    if hr_zone_minutes_list is not None:
+        for data in hr_zone_minutes_list:
+            log_time = datetime.fromisoformat(data["dateTime"] + "T" + "00:00:00")
+            utc_time = local_timezone.localize(log_time).astimezone(pytz.utc).isoformat()
+            if data.get("value"):
+                collected_records.append(
+                    {
+                        "measurement": "HR zones",
+                        "time": utc_time,
+                        "tags": {
+                            "Device": devicename,
+                        },
+                        "fields": data["value"],
+                    }
+                )
+        logger.info("Recorded HR zone minutes for date " + start_date_str + " to " + end_date_str)
+    else:
+        logger.error("Recording failed : HR zone minutes for date " + start_date_str + " to " + end_date_str)
+
+
 def collect_daily_data_limit_none(
     *,
     request_data_from_fitbit,
