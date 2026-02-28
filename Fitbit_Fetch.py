@@ -3,6 +3,7 @@ import requests, schedule, time, pytz, logging, sys
 from datetime import datetime, timedelta
 from fitbit_fetch.collectors_activity import collect_latest_activities, collect_tcx_data
 from fitbit_fetch.collectors_basic import collect_battery_level, collect_intraday_data_limit_1d
+from fitbit_fetch.collectors_daily import collect_daily_data_limit_none
 from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
@@ -476,30 +477,15 @@ def get_daily_data_limit_365d(start_date_str, end_date_str):
 
 # records SPO2 single days for the whole given period - 1 query
 def get_daily_data_limit_none(start_date_str, end_date_str):
-    try:
-        data_list = request_data_from_fitbit('https://api.fitbit.com/1/user/-/spo2/date/' + start_date_str + '/' + end_date_str + '.json')
-    except requests.exceptions.HTTPError as e:
-        logging.error(f"{e}")
-        data_list = None
-    if data_list != None:
-        for data in data_list:
-            log_time = datetime.fromisoformat(data["dateTime"] + "T" + "00:00:00")
-            utc_time = LOCAL_TIMEZONE.localize(log_time).astimezone(pytz.utc).isoformat()
-            collected_records.append({
-                    "measurement":  "SPO2",
-                    "time": utc_time,
-                    "tags": {
-                        "Device": DEVICENAME
-                    },
-                    "fields": {
-                        "avg": float(data["value"]["avg"]) if data["value"]["avg"] else None,
-                        "max": float(data["value"]["max"]) if data["value"]["max"] else None,
-                        "min": float(data["value"]["min"]) if data["value"]["min"] else None
-                    }
-                })
-        logging.info("Recorded Avg SPO2 for date " + start_date_str + " to " + end_date_str)
-    else:
-        logging.error("Recording failed : Avg SPO2 for date " + start_date_str + " to " + end_date_str)
+    collect_daily_data_limit_none(
+        request_data_from_fitbit=request_data_from_fitbit,
+        start_date_str=start_date_str,
+        end_date_str=end_date_str,
+        local_timezone=LOCAL_TIMEZONE,
+        devicename=DEVICENAME,
+        collected_records=collected_records,
+        logger=logging,
+    )
 
 # fetches TCX GPS data
 def get_tcx_data(tcx_url, ActivityID):
