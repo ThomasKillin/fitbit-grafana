@@ -11,6 +11,7 @@ from fitbit_fetch.collectors_daily import (
 )
 from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
+from fitbit_fetch.derived_metrics import build_derived_points
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
 from fitbit_fetch.influx_writer import InfluxWriter
 from fitbit_fetch.runner import run_scheduled_auto_update_loop, run_startup_or_bulk_update
@@ -49,6 +50,9 @@ SCHEDULE_AUTO_UPDATE = CONFIG.schedule_auto_update # Scheduling updates of data 
 SERVER_ERROR_MAX_RETRY = CONFIG.server_error_max_retry
 EXPIRED_TOKEN_MAX_RETRY = CONFIG.expired_token_max_retry
 SKIP_REQUEST_ON_SERVER_ERROR = CONFIG.skip_request_on_server_error
+ENABLE_DERIVED_PIPELINE_HEALTH = CONFIG.enable_derived_pipeline_health
+ENABLE_DERIVED_RECOVERY_SCORE = CONFIG.enable_derived_recovery_score
+ENABLE_DERIVED_TRAINING_LOAD = CONFIG.enable_derived_training_load
 APP_STATE = RuntimeState()
 APP_SERVICES = AppServices(
     client_id=CONFIG.client_id,
@@ -111,7 +115,15 @@ def Get_New_Access_Token():
 def write_points_to_influxdb(points):
     if APP_SERVICES.influx_writer is None:
         raise RuntimeError("Influx writer is not initialized")
-    APP_SERVICES.influx_writer.write_points(points)
+    derived_points = build_derived_points(
+        points=points,
+        devicename=APP_SERVICES.devicename,
+        end_date_str=APP_STATE.end_date_str or datetime.utcnow().strftime("%Y-%m-%d"),
+        enable_pipeline_health=ENABLE_DERIVED_PIPELINE_HEALTH,
+        enable_recovery_score=ENABLE_DERIVED_RECOVERY_SCORE,
+        enable_training_load=ENABLE_DERIVED_TRAINING_LOAD,
+    )
+    APP_SERVICES.influx_writer.write_points(points + derived_points)
 
 def initialize_clients():
     APP_SERVICES.fitbit_client = FitbitClient(

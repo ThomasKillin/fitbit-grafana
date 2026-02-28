@@ -34,6 +34,28 @@ class ConfigTests(unittest.TestCase):
             config = load_config()
         self.assertEqual(config.fitbit_rate_limit_buffer_seconds, 120)
 
+    def test_derived_feature_flags_defaults(self):
+        with patch.dict(os.environ, {}, clear=True):
+            config = load_config()
+        self.assertTrue(config.enable_derived_pipeline_health)
+        self.assertFalse(config.enable_derived_recovery_score)
+        self.assertFalse(config.enable_derived_training_load)
+
+    def test_derived_feature_flags_override(self):
+        with patch.dict(
+            os.environ,
+            {
+                "ENABLE_DERIVED_PIPELINE_HEALTH": "false",
+                "ENABLE_DERIVED_RECOVERY_SCORE": "true",
+                "ENABLE_DERIVED_TRAINING_LOAD": "1",
+            },
+            clear=True,
+        ):
+            config = load_config()
+        self.assertFalse(config.enable_derived_pipeline_health)
+        self.assertTrue(config.enable_derived_recovery_score)
+        self.assertTrue(config.enable_derived_training_load)
+
 
 if __name__ == "__main__":
     unittest.main()

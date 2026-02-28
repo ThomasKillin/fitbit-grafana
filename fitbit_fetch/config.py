@@ -38,10 +38,20 @@ class AppConfig:
     server_error_max_retry: int
     expired_token_max_retry: int
     skip_request_on_server_error: bool
+    enable_derived_pipeline_health: bool
+    enable_derived_recovery_score: bool
+    enable_derived_training_load: bool
 
 
 def _is_false_env(value: str | None) -> bool:
     return value is not None and value.strip().lower() in _FALSE_VALUES
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return not _is_false_env(value)
 
 
 def load_config() -> AppConfig:
@@ -83,4 +93,7 @@ def load_config() -> AppConfig:
         server_error_max_retry=3,
         expired_token_max_retry=5,
         skip_request_on_server_error=True,
+        enable_derived_pipeline_health=_env_bool("ENABLE_DERIVED_PIPELINE_HEALTH", True),
+        enable_derived_recovery_score=_env_bool("ENABLE_DERIVED_RECOVERY_SCORE", False),
+        enable_derived_training_load=_env_bool("ENABLE_DERIVED_TRAINING_LOAD", False),
     )
