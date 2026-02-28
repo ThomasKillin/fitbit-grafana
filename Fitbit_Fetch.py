@@ -15,6 +15,7 @@ from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
 from fitbit_fetch.influx_writer import InfluxWriter
 from fitbit_fetch.runner import run_scheduled_auto_update_loop, run_startup_or_bulk_update
 from fitbit_fetch.run_utils import build_date_list, write_and_reset_records
+from fitbit_fetch.services import AppServices
 from fitbit_fetch.state import RuntimeState
 
 # %% [markdown]
@@ -39,9 +40,6 @@ INFLUXDB_TOKEN = CONFIG.influxdb_token
 INFLUXDB_URL = CONFIG.influxdb_url
 INFLUXDB_V3_ACCESS_TOKEN = CONFIG.influxdb_v3_access_token
 # MAKE SURE you set the application type to PERSONAL. Otherwise, you won't have access to intraday data series, resulting in 40X errors.
-client_id = CONFIG.client_id
-client_secret = CONFIG.client_secret
-DEVICENAME = CONFIG.devicename
 MANUAL_START_DATE = CONFIG.manual_start_date
 MANUAL_END_DATE = CONFIG.manual_end_date
 AUTO_DATE_RANGE = CONFIG.auto_date_range
@@ -52,6 +50,11 @@ SERVER_ERROR_MAX_RETRY = CONFIG.server_error_max_retry
 EXPIRED_TOKEN_MAX_RETRY = CONFIG.expired_token_max_retry
 SKIP_REQUEST_ON_SERVER_ERROR = CONFIG.skip_request_on_server_error
 APP_STATE = RuntimeState()
+APP_SERVICES = AppServices(
+    client_id=CONFIG.client_id,
+    client_secret=CONFIG.client_secret,
+    devicename=CONFIG.devicename,
+)
 
 # %% [markdown]
 # ## Logging setup
@@ -73,30 +76,28 @@ logging.basicConfig(
 # ## Setting up base API Caller function
 
 # %%
-fitbit_client = None
-
 # Generic request caller for all Fitbit endpoints.
 def request_data_from_fitbit(url, headers=None, params=None, data=None, request_type="get"):
-    if fitbit_client is None:
+    if APP_SERVICES.fitbit_client is None:
         raise RuntimeError("Fitbit client is not initialized")
-    fitbit_client.access_token = APP_STATE.access_token
-    response_data = fitbit_client.request_data(
+    APP_SERVICES.fitbit_client.access_token = APP_STATE.access_token
+    response_data = APP_SERVICES.fitbit_client.request_data(
         url,
         headers=headers,
         params=params,
         data=data,
         request_type=request_type,
     )
-    APP_STATE.access_token = fitbit_client.access_token
+    APP_STATE.access_token = APP_SERVICES.fitbit_client.access_token
     return response_data
 
 # %% [markdown]
 # ## Token Refresh Management
 
 def Get_New_Access_Token(client_id, client_secret):
-    if fitbit_client is None:
+    if APP_SERVICES.fitbit_client is None:
         raise RuntimeError("Fitbit client is not initialized")
-    access_token = fitbit_client.get_new_access_token(client_id, client_secret)
+    access_token = APP_SERVICES.fitbit_client.get_new_access_token(client_id, client_secret)
     APP_STATE.access_token = access_token
     return access_token
 
@@ -104,27 +105,24 @@ def Get_New_Access_Token(client_id, client_secret):
 # ## Influxdb Database Initialization
 
 # %%
-influx_writer = None
-
 def write_points_to_influxdb(points):
-    if influx_writer is None:
+    if APP_SERVICES.influx_writer is None:
         raise RuntimeError("Influx writer is not initialized")
-    influx_writer.write_points(points)
+    APP_SERVICES.influx_writer.write_points(points)
 
 def initialize_clients():
-    global fitbit_client, influx_writer
-    fitbit_client = FitbitClient(
+    APP_SERVICES.fitbit_client = FitbitClient(
         token_file_path=TOKEN_FILE_PATH,
         fitbit_language=FITBIT_LANGUAGE,
         rate_limit_buffer_seconds=FITBIT_RATE_LIMIT_BUFFER_SECONDS,
-        client_id=client_id,
-        client_secret=client_secret,
+        client_id=APP_SERVICES.client_id,
+        client_secret=APP_SERVICES.client_secret,
         server_error_max_retry=SERVER_ERROR_MAX_RETRY,
         expired_token_max_retry=EXPIRED_TOKEN_MAX_RETRY,
         skip_request_on_server_error=SKIP_REQUEST_ON_SERVER_ERROR,
         logger=logging,
     )
-    influx_writer = InfluxWriter(
+    APP_SERVICES.influx_writer = InfluxWriter(
         version=INFLUXDB_VERSION,
         host=INFLUXDB_HOST,
         port=INFLUXDB_PORT,
@@ -141,7 +139,7 @@ def initialize_clients():
 
 def initialize_runtime_state():
     try:
-        APP_STATE.access_token = Get_New_Access_Token(client_id, client_secret)
+        APP_STATE.access_token = Get_New_Access_Token(APP_SERVICES.client_id, APP_SERVICES.client_secret)
     except InvalidRefreshTokenError as err:
         logging.error(str(err))
         print(str(err))
@@ -184,7 +182,7 @@ def get_battery_level():
     collect_battery_level(
         request_data_from_fitbit=request_data_from_fitbit,
         local_timezone=APP_STATE.local_timezone,
-        devicename=DEVICENAME,
+        devicename=APP_SERVICES.devicename,
         collected_records=APP_STATE.collected_records,
         logger=logging,
     )
@@ -194,7 +192,7 @@ def get_intraday_data_limit_1d(date_str, measurement_list):
     collect_intraday_data_limit_1d(
         request_data_from_fitbit=request_data_from_fitbit,
         local_timezone=APP_STATE.local_timezone,
-        devicename=DEVICENAME,
+        devicename=APP_SERVICES.devicename,
         collected_records=APP_STATE.collected_records,
         logger=logging,
         date_str=date_str,
@@ -208,7 +206,7 @@ def get_daily_data_limit_30d(start_date_str, end_date_str):
         start_date_str=start_date_str,
         end_date_str=end_date_str,
         local_timezone=APP_STATE.local_timezone,
-        devicename=DEVICENAME,
+        devicename=APP_SERVICES.devicename,
         collected_records=APP_STATE.collected_records,
         logger=logging,
     )
@@ -220,7 +218,7 @@ def get_daily_data_limit_100d(start_date_str, end_date_str):
         start_date_str=start_date_str,
         end_date_str=end_date_str,
         local_timezone=APP_STATE.local_timezone,
-        devicename=DEVICENAME,
+        devicename=APP_SERVICES.devicename,
         collected_records=APP_STATE.collected_records,
         logger=logging,
     )
@@ -232,7 +230,7 @@ def get_daily_data_limit_365d(start_date_str, end_date_str):
         start_date_str=start_date_str,
         end_date_str=end_date_str,
         local_timezone=APP_STATE.local_timezone,
-        devicename=DEVICENAME,
+        devicename=APP_SERVICES.devicename,
         collected_records=APP_STATE.collected_records,
         logger=logging,
     )
@@ -244,7 +242,7 @@ def get_daily_data_limit_none(start_date_str, end_date_str):
         start_date_str=start_date_str,
         end_date_str=end_date_str,
         local_timezone=APP_STATE.local_timezone,
-        devicename=DEVICENAME,
+        devicename=APP_SERVICES.devicename,
         collected_records=APP_STATE.collected_records,
         logger=logging,
     )
@@ -288,8 +286,8 @@ def main():
         schedule_module=schedule,
         logger=logging,
         get_new_access_token=Get_New_Access_Token,
-        client_id=client_id,
-        client_secret=client_secret,
+        client_id=APP_SERVICES.client_id,
+        client_secret=APP_SERVICES.client_secret,
         build_date_list=build_date_list,
         get_intraday_data_limit_1d=get_intraday_data_limit_1d,
         get_daily_data_limit_30d=get_daily_data_limit_30d,
@@ -314,8 +312,8 @@ def main():
         run_scheduled_auto_update_loop(
             schedule_module=schedule,
             get_new_access_token=Get_New_Access_Token,
-            client_id=client_id,
-            client_secret=client_secret,
+            client_id=APP_SERVICES.client_id,
+            client_secret=APP_SERVICES.client_secret,
             get_intraday_data_limit_1d=get_intraday_data_limit_1d,
             get_battery_level=get_battery_level,
             get_daily_data_limit_30d=get_daily_data_limit_30d,
