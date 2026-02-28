@@ -106,13 +106,6 @@ def Get_New_Access_Token(client_id, client_secret):
     APP_STATE.access_token = access_token
     return access_token
 
-try:
-    APP_STATE.access_token = Get_New_Access_Token(client_id, client_secret)
-except InvalidRefreshTokenError as err:
-    logging.error(str(err))
-    print(str(err))
-    raise SystemExit(1)
-
 # %% [markdown]
 # ## Influxdb Database Initialization
 
@@ -135,27 +128,29 @@ influx_writer = InfluxWriter(
 def write_points_to_influxdb(points):
     influx_writer.write_points(points)
 
-# %% [markdown]
-# ## Set Timezone from profile data
+def initialize_runtime_state():
+    try:
+        APP_STATE.access_token = Get_New_Access_Token(client_id, client_secret)
+    except InvalidRefreshTokenError as err:
+        logging.error(str(err))
+        print(str(err))
+        raise SystemExit(1)
 
-# %%
-if LOCAL_TIMEZONE == "Automatic":
-    LOCAL_TIMEZONE = pytz.timezone(request_data_from_fitbit("https://api.fitbit.com/1/user/-/profile.json")["user"]["timezone"])
-else:
-    LOCAL_TIMEZONE = pytz.timezone(LOCAL_TIMEZONE)
-APP_STATE.local_timezone = LOCAL_TIMEZONE
+    if LOCAL_TIMEZONE == "Automatic":
+        resolved_local_timezone = pytz.timezone(
+            request_data_from_fitbit("https://api.fitbit.com/1/user/-/profile.json")["user"]["timezone"]
+        )
+    else:
+        resolved_local_timezone = pytz.timezone(LOCAL_TIMEZONE)
+    APP_STATE.local_timezone = resolved_local_timezone
 
-# %% [markdown]
-# ## Selecting Dates for update
-
-# %%
-APP_STATE.start_date, APP_STATE.end_date, APP_STATE.start_date_str, APP_STATE.end_date_str = build_date_range(
-    local_timezone=APP_STATE.local_timezone,
-    auto_date_range=AUTO_DATE_RANGE,
-    auto_update_date_range=auto_update_date_range,
-    manual_start_date=MANUAL_START_DATE,
-    manual_end_date=MANUAL_END_DATE,
-)
+    APP_STATE.start_date, APP_STATE.end_date, APP_STATE.start_date_str, APP_STATE.end_date_str = build_date_range(
+        local_timezone=APP_STATE.local_timezone,
+        auto_date_range=AUTO_DATE_RANGE,
+        auto_update_date_range=auto_update_date_range,
+        manual_start_date=MANUAL_START_DATE,
+        manual_end_date=MANUAL_END_DATE,
+    )
 
 # %% [markdown]
 # ## Setting up functions for Requesting data from server
@@ -266,6 +261,8 @@ def fetch_latest_activities(end_date_str):
 
 
 def main():
+    initialize_runtime_state()
+
     # %% [markdown]
     # ## Call the functions one time as a startup update OR do switch to bulk update mode
 
