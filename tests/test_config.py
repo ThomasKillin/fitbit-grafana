@@ -1,0 +1,34 @@
+import os
+import unittest
+from unittest.mock import patch
+
+from fitbit_fetch.config import load_config
+
+
+class ConfigTests(unittest.TestCase):
+    def test_auto_date_range_defaults_true_when_manual_start_missing(self):
+        with patch.dict(os.environ, {}, clear=True):
+            config = load_config()
+        self.assertTrue(config.auto_date_range)
+        self.assertTrue(config.schedule_auto_update)
+
+    def test_auto_date_range_false_values(self):
+        with patch.dict(os.environ, {"AUTO_DATE_RANGE": "False"}, clear=True):
+            config = load_config()
+        self.assertFalse(config.auto_date_range)
+        self.assertFalse(config.schedule_auto_update)
+
+    def test_manual_start_disables_auto(self):
+        with patch.dict(os.environ, {"MANUAL_START_DATE": "2026-01-01"}, clear=True):
+            config = load_config()
+        self.assertFalse(config.auto_date_range)
+        self.assertFalse(config.schedule_auto_update)
+
+    def test_influx_version_validation(self):
+        with patch.dict(os.environ, {"INFLUXDB_VERSION": "3"}, clear=True):
+            config = load_config()
+        self.assertEqual(config.influxdb_version, "3")
+
+
+if __name__ == "__main__":
+    unittest.main()
