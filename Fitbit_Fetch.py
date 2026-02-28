@@ -265,65 +265,70 @@ def fetch_latest_activities(end_date_str):
     )
 
 
-# %% [markdown]
-# ## Call the functions one time as a startup update OR do switch to bulk update mode
+def main():
+    # %% [markdown]
+    # ## Call the functions one time as a startup update OR do switch to bulk update mode
 
-# %%
-run_startup_or_bulk_update(
-    auto_date_range=AUTO_DATE_RANGE,
-    start_date=APP_STATE.start_date,
-    end_date=APP_STATE.end_date,
-    start_date_str=APP_STATE.start_date_str,
-    end_date_str=APP_STATE.end_date_str,
-    schedule_module=schedule,
-    logger=logging,
-    get_new_access_token=Get_New_Access_Token,
-    client_id=client_id,
-    client_secret=client_secret,
-    build_date_list=build_date_list,
-    get_intraday_data_limit_1d=get_intraday_data_limit_1d,
-    get_daily_data_limit_30d=get_daily_data_limit_30d,
-    get_daily_data_limit_100d=get_daily_data_limit_100d,
-    get_daily_data_limit_365d=get_daily_data_limit_365d,
-    get_daily_data_limit_none=get_daily_data_limit_none,
-    get_battery_level=get_battery_level,
-    fetch_latest_activities=fetch_latest_activities,
-    write_points_to_influxdb=write_points_to_influxdb,
-    write_and_reset_records=write_and_reset_records,
-    yield_dates_with_gap=yield_dates_with_gap,
-    get_collected_records=get_collected_records,
-    set_collected_records=set_collected_records,
-)
-
-# %% [markdown]
-# ## Schedule functions at specific intervals (Ongoing continuous update)
-
-# %%
-# Ongoing continuous update of data
-if SCHEDULE_AUTO_UPDATE:
-    run_scheduled_auto_update_loop(
+    # %%
+    run_startup_or_bulk_update(
+        auto_date_range=AUTO_DATE_RANGE,
+        start_date=APP_STATE.start_date,
+        end_date=APP_STATE.end_date,
+        start_date_str=APP_STATE.start_date_str,
+        end_date_str=APP_STATE.end_date_str,
         schedule_module=schedule,
+        logger=logging,
         get_new_access_token=Get_New_Access_Token,
         client_id=client_id,
         client_secret=client_secret,
+        build_date_list=build_date_list,
         get_intraday_data_limit_1d=get_intraday_data_limit_1d,
-        get_battery_level=get_battery_level,
         get_daily_data_limit_30d=get_daily_data_limit_30d,
         get_daily_data_limit_100d=get_daily_data_limit_100d,
         get_daily_data_limit_365d=get_daily_data_limit_365d,
         get_daily_data_limit_none=get_daily_data_limit_none,
+        get_battery_level=get_battery_level,
         fetch_latest_activities=fetch_latest_activities,
-        get_start_date_str=lambda: APP_STATE.start_date_str,
-        get_end_date_str=lambda: APP_STATE.end_date_str,
-        datetime_cls=datetime,
-        timedelta_cls=timedelta,
-        get_collected_records=get_collected_records,
-        set_collected_records=set_collected_records,
         write_points_to_influxdb=write_points_to_influxdb,
         write_and_reset_records=write_and_reset_records,
-        update_working_dates=update_working_dates,
-        time_module=time,
+        yield_dates_with_gap=yield_dates_with_gap,
+        get_collected_records=get_collected_records,
+        set_collected_records=set_collected_records,
     )
+
+    # %% [markdown]
+    # ## Schedule functions at specific intervals (Ongoing continuous update)
+
+    # %%
+    # Ongoing continuous update of data
+    if SCHEDULE_AUTO_UPDATE:
+        run_scheduled_auto_update_loop(
+            schedule_module=schedule,
+            get_new_access_token=Get_New_Access_Token,
+            client_id=client_id,
+            client_secret=client_secret,
+            get_intraday_data_limit_1d=get_intraday_data_limit_1d,
+            get_battery_level=get_battery_level,
+            get_daily_data_limit_30d=get_daily_data_limit_30d,
+            get_daily_data_limit_100d=get_daily_data_limit_100d,
+            get_daily_data_limit_365d=get_daily_data_limit_365d,
+            get_daily_data_limit_none=get_daily_data_limit_none,
+            fetch_latest_activities=fetch_latest_activities,
+            get_start_date_str=lambda: APP_STATE.start_date_str,
+            get_end_date_str=lambda: APP_STATE.end_date_str,
+            datetime_cls=datetime,
+            timedelta_cls=timedelta,
+            get_collected_records=get_collected_records,
+            set_collected_records=set_collected_records,
+            write_points_to_influxdb=write_points_to_influxdb,
+            write_and_reset_records=write_and_reset_records,
+            update_working_dates=update_working_dates,
+            time_module=time,
+        )
+
+
+if __name__ == "__main__":
+    main()
 
 
 
