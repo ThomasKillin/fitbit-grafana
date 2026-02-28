@@ -3,7 +3,11 @@ import schedule, time, pytz, logging, sys
 from datetime import datetime, timedelta
 from fitbit_fetch.collectors_activity import collect_latest_activities, collect_tcx_data
 from fitbit_fetch.collectors_basic import collect_battery_level, collect_intraday_data_limit_1d
-from fitbit_fetch.collectors_daily import collect_daily_data_limit_30d, collect_daily_data_limit_none
+from fitbit_fetch.collectors_daily import (
+    collect_daily_data_limit_30d,
+    collect_daily_data_limit_100d,
+    collect_daily_data_limit_none,
+)
 from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
@@ -204,74 +208,15 @@ def get_daily_data_limit_30d(start_date_str, end_date_str):
 
 # Only for sleep data - limit 100 days - 1 query
 def get_daily_data_limit_100d(start_date_str, end_date_str):
-
-    sleep_data = request_data_from_fitbit('https://api.fitbit.com/1.2/user/-/sleep/date/' + start_date_str + '/' + end_date_str + '.json').get("sleep")
-    if sleep_data != None:
-        for record in sleep_data:
-            log_time = datetime.fromisoformat(record["startTime"])
-            utc_time = LOCAL_TIMEZONE.localize(log_time).astimezone(pytz.utc).isoformat()
-            try:
-                minutesLight= record['levels']['summary']['light']['minutes']
-                minutesREM = record['levels']['summary']['rem']['minutes']
-                minutesDeep = record['levels']['summary']['deep']['minutes']
-            except:
-                minutesLight= record['levels']['summary']['asleep']['minutes']
-                minutesREM = record['levels']['summary']['restless']['minutes']
-                minutesDeep = 0
-
-            collected_records.append({
-                    "measurement":  "Sleep Summary",
-                    "time": utc_time,
-                    "tags": {
-                        "Device": DEVICENAME,
-                        "isMainSleep": record["isMainSleep"],
-                    },
-                    "fields": {
-                        'efficiency': record["efficiency"],
-                        'minutesAfterWakeup': record['minutesAfterWakeup'],
-                        'minutesAsleep': record['minutesAsleep'],
-                        'minutesToFallAsleep': record['minutesToFallAsleep'],
-                        'minutesInBed': record['timeInBed'],
-                        'minutesAwake': record['minutesAwake'],
-                        'minutesLight': minutesLight,
-                        'minutesREM': minutesREM,
-                        'minutesDeep': minutesDeep
-                    }
-                })
-            
-            sleep_level_mapping = {'wake': 3, 'rem': 2, 'light': 1, 'deep': 0, 'asleep': 1, 'restless': 2, 'awake': 3, 'unknown': 4}
-            for sleep_stage in record['levels']['data']:
-                log_time = datetime.fromisoformat(sleep_stage["dateTime"])
-                utc_time = LOCAL_TIMEZONE.localize(log_time).astimezone(pytz.utc).isoformat()
-                collected_records.append({
-                        "measurement":  "Sleep Levels",
-                        "time": utc_time,
-                        "tags": {
-                            "Device": DEVICENAME,
-                            "isMainSleep": record["isMainSleep"],
-                        },
-                        "fields": {
-                            'level': sleep_level_mapping[sleep_stage["level"]],
-                            'duration_seconds': sleep_stage["seconds"]
-                        }
-                    })
-            wake_time = datetime.fromisoformat(record["endTime"])
-            utc_wake_time = LOCAL_TIMEZONE.localize(wake_time).astimezone(pytz.utc).isoformat()
-            collected_records.append({
-                        "measurement":  "Sleep Levels",
-                        "time": utc_wake_time,
-                        "tags": {
-                            "Device": DEVICENAME,
-                            "isMainSleep": record["isMainSleep"],
-                        },
-                        "fields": {
-                            'level': sleep_level_mapping['wake'],
-                            'duration_seconds': None
-                        }
-                    })
-        logging.info("Recorded Sleep data for date " + start_date_str + " to " + end_date_str)
-    else:
-        logging.error("Recording failed : Sleep data for date " + start_date_str + " to " + end_date_str)
+    collect_daily_data_limit_100d(
+        request_data_from_fitbit=request_data_from_fitbit,
+        start_date_str=start_date_str,
+        end_date_str=end_date_str,
+        local_timezone=LOCAL_TIMEZONE,
+        devicename=DEVICENAME,
+        collected_records=collected_records,
+        logger=logging,
+    )
 
 # Max date range 1 year, records HR zones, Activity minutes and Resting HR - 4 + 3 + 1 + 1 = 9 queries
 def get_daily_data_limit_365d(start_date_str, end_date_str):
