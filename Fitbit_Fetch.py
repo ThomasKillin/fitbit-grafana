@@ -3,6 +3,7 @@ import requests, schedule, time, pytz, logging, sys
 from datetime import datetime, timedelta
 # For XML processing
 import xml.etree.ElementTree as ET
+from fitbit_fetch.collectors_basic import collect_battery_level, collect_intraday_data_limit_1d
 from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
@@ -169,40 +170,25 @@ def update_working_dates():
 
 # Get last synced battery level of the device
 def get_battery_level():
-    device = request_data_from_fitbit("https://api.fitbit.com/1/user/-/devices.json")[0]
-    if device != None:
-        collected_records.append({
-            "measurement": "DeviceBatteryLevel",
-            "time": LOCAL_TIMEZONE.localize(datetime.fromisoformat(device['lastSyncTime'])).astimezone(pytz.utc).isoformat(),
-            "fields": {
-                "value": float(device['batteryLevel'])
-            }
-        })
-        logging.info("Recorded battery level for " + DEVICENAME)
-    else:
-        logging.error("Recording battery level failed : " + DEVICENAME)
+    collect_battery_level(
+        request_data_from_fitbit=request_data_from_fitbit,
+        local_timezone=LOCAL_TIMEZONE,
+        devicename=DEVICENAME,
+        collected_records=collected_records,
+        logger=logging,
+    )
 
 # For intraday detailed data, max possible range in one day. 
 def get_intraday_data_limit_1d(date_str, measurement_list):
-    for measurement in measurement_list:
-        data = request_data_from_fitbit('https://api.fitbit.com/1/user/-/activities/' + measurement[0] + '/date/' + date_str + '/1d/' + measurement[2] + '.json')["activities-" + measurement[0] + "-intraday"]['dataset']
-        if data != None:
-            for value in data:
-                log_time = datetime.fromisoformat(date_str + "T" + value['time'])
-                utc_time = LOCAL_TIMEZONE.localize(log_time).astimezone(pytz.utc).isoformat()
-                collected_records.append({
-                        "measurement":  measurement[1],
-                        "time": utc_time,
-                        "tags": {
-                            "Device": DEVICENAME
-                        },
-                        "fields": {
-                            "value": int(value['value'])
-                        }
-                    })
-            logging.info("Recorded " +  measurement[1] + " intraday for date " + date_str)
-        else:
-            logging.error("Recording failed : " +  measurement[1] + " intraday for date " + date_str)
+    collect_intraday_data_limit_1d(
+        request_data_from_fitbit=request_data_from_fitbit,
+        local_timezone=LOCAL_TIMEZONE,
+        devicename=DEVICENAME,
+        collected_records=collected_records,
+        logger=logging,
+        date_str=date_str,
+        measurement_list=measurement_list,
+    )
 
 # Max range is 30 days, records BR, SPO2 Intraday, skin temp and HRV - 4 queries
 def get_daily_data_limit_30d(start_date_str, end_date_str):
