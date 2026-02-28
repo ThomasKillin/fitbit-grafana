@@ -11,8 +11,6 @@ def run_startup_or_bulk_update(
     schedule_module,
     logger,
     get_new_access_token,
-    client_id,
-    client_secret,
     build_date_list,
     get_intraday_data_limit_1d,
     get_daily_data_limit_30d,
@@ -47,7 +45,7 @@ def run_startup_or_bulk_update(
         fetch_latest_activities(end_date_str)
         set_collected_records(write_and_reset_records(write_points_to_influxdb, get_collected_records()))
     else:
-        schedule_module.every(1).hours.do(lambda: get_new_access_token(client_id, client_secret))
+        schedule_module.every(1).hours.do(get_new_access_token)
 
         date_list = build_date_list(start_date, end_date)
 
@@ -80,8 +78,6 @@ def run_scheduled_auto_update_loop(
     *,
     schedule_module,
     get_new_access_token,
-    client_id,
-    client_secret,
     get_intraday_data_limit_1d,
     get_battery_level,
     get_daily_data_limit_30d,
@@ -100,7 +96,7 @@ def run_scheduled_auto_update_loop(
     update_working_dates,
     time_module,
 ):
-    schedule_module.every(1).hours.do(lambda: get_new_access_token(client_id, client_secret))
+    schedule_module.every(1).hours.do(get_new_access_token)
     schedule_module.every(3).minutes.do(
         lambda: get_intraday_data_limit_1d(
             get_end_date_str(),

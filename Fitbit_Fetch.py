@@ -94,10 +94,13 @@ def request_data_from_fitbit(url, headers=None, params=None, data=None, request_
 # %% [markdown]
 # ## Token Refresh Management
 
-def Get_New_Access_Token(client_id, client_secret):
+def Get_New_Access_Token():
     if APP_SERVICES.fitbit_client is None:
         raise RuntimeError("Fitbit client is not initialized")
-    access_token = APP_SERVICES.fitbit_client.get_new_access_token(client_id, client_secret)
+    access_token = APP_SERVICES.fitbit_client.get_new_access_token(
+        APP_SERVICES.client_id,
+        APP_SERVICES.client_secret,
+    )
     APP_STATE.access_token = access_token
     return access_token
 
@@ -139,7 +142,7 @@ def initialize_clients():
 
 def initialize_runtime_state():
     try:
-        APP_STATE.access_token = Get_New_Access_Token(APP_SERVICES.client_id, APP_SERVICES.client_secret)
+        APP_STATE.access_token = Get_New_Access_Token()
     except InvalidRefreshTokenError as err:
         logging.error(str(err))
         print(str(err))
@@ -286,8 +289,6 @@ def main():
         schedule_module=schedule,
         logger=logging,
         get_new_access_token=Get_New_Access_Token,
-        client_id=APP_SERVICES.client_id,
-        client_secret=APP_SERVICES.client_secret,
         build_date_list=build_date_list,
         get_intraday_data_limit_1d=get_intraday_data_limit_1d,
         get_daily_data_limit_30d=get_daily_data_limit_30d,
@@ -312,8 +313,6 @@ def main():
         run_scheduled_auto_update_loop(
             schedule_module=schedule,
             get_new_access_token=Get_New_Access_Token,
-            client_id=APP_SERVICES.client_id,
-            client_secret=APP_SERVICES.client_secret,
             get_intraday_data_limit_1d=get_intraday_data_limit_1d,
             get_battery_level=get_battery_level,
             get_daily_data_limit_30d=get_daily_data_limit_30d,
