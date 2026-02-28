@@ -17,6 +17,7 @@ class DerivedMetricsTests(unittest.TestCase):
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived PipelineHealth")
         self.assertEqual(derived[0]["fields"]["record_count_last_run"], 1)
+        self.assertEqual(derived[0]["tags"]["MetricClass"], "Derived")
 
     def test_recovery_and_training_load_points_when_inputs_present(self):
         points = [
@@ -36,6 +37,7 @@ class DerivedMetricsTests(unittest.TestCase):
         measurements = {point["measurement"] for point in derived}
         self.assertIn("Derived TrainingLoad", measurements)
         self.assertIn("Derived RecoveryScore", measurements)
+        self.assertTrue(all(point["tags"]["MetricClass"] == "Derived" for point in derived))
 
 
 if __name__ == "__main__":

@@ -50,6 +50,54 @@
 
 ---
 
+### Measurement: `Derived PipelineHealth`
+
+| Field Key | Field Type |
+| --- | --- |
+| `last_success_epoch` | integer |
+| `minutes_since_success` | float |
+| `record_count_last_run` | integer |
+
+| Tag Key | Tag Type |
+| --- | --- |
+| `Device` | string |
+| `MetricClass` | string |
+
+---
+
+### Measurement: `Derived RecoveryScore`
+
+| Field Key | Field Type |
+| --- | --- |
+| `score` | float |
+| `sleep_component` | float |
+| `hrv_component` | float |
+| `rhr_component` | float |
+| `strain_component` | float |
+
+| Tag Key | Tag Type |
+| --- | --- |
+| `Device` | string |
+| `MetricClass` | string |
+
+---
+
+### Measurement: `Derived TrainingLoad`
+
+| Field Key | Field Type |
+| --- | --- |
+| `daily_load` | float |
+| `acute_7d` | float |
+| `chronic_28d` | float |
+| `load_ratio` | float |
+
+| Tag Key | Tag Type |
+| --- | --- |
+| `Device` | string |
+| `MetricClass` | string |
+
+---
+
 ### Measurement: `GPS`
 
 | Field Key | Field Type |

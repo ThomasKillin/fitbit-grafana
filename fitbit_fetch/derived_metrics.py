@@ -76,7 +76,7 @@ def build_derived_points(
                 {
                     "measurement": "Derived TrainingLoad",
                     "time": metric_time,
-                    "tags": {"Device": devicename},
+                    "tags": {"Device": devicename, "MetricClass": "Derived"},
                     "fields": {
                         "daily_load": round(float(daily_load), 2),
                         "acute_7d": round(float(daily_load), 2),
@@ -93,7 +93,7 @@ def build_derived_points(
                 {
                     "measurement": "Derived RecoveryScore",
                     "time": metric_time,
-                    "tags": {"Device": devicename},
+                    "tags": {"Device": devicename, "MetricClass": "Derived"},
                     "fields": recovery_fields,
                 }
             )
@@ -103,7 +103,7 @@ def build_derived_points(
             {
                 "measurement": "Derived PipelineHealth",
                 "time": datetime.utcnow().replace(microsecond=0).isoformat() + "+00:00",
-                "tags": {"Device": devicename},
+                "tags": {"Device": devicename, "MetricClass": "Derived"},
                 "fields": {
                     "last_success_epoch": int(time.time()),
                     "minutes_since_success": 0.0,
