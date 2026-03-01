@@ -5,6 +5,18 @@ Use these templates when creating new panels so dashboard intent stays clear:
 - `Direct` panels only query points tagged `MetricClass='Direct'`
 - `Derived` panels only query points tagged `MetricClass='Derived'`
 
+Import-ready derived block dashboard JSON:
+
+- [Grafana_Dashboard/Derived Metrics Block for influxdb-v1.json](../Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v1.json)
+
+Quick usage:
+
+1. Grafana -> Dashboards -> New -> Import.
+2. Upload `Derived Metrics Block for influxdb-v1.json`.
+3. Select your InfluxDB datasource for `DS_HEALTH_STATS`.
+4. Import.
+5. Optional: copy the `Derived Measurements` row panels into your main dashboard.
+
 ---
 
 ## InfluxDB v1 (InfluxQL)
