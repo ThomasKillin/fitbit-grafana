@@ -1,6 +1,6 @@
 """Derived metric generation from collected direct records."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 
@@ -25,6 +25,45 @@ def _derive_daily_load_from_hr_zones(points) -> float | None:
     cardio = float(fields.get("Cardio", 0) or 0)
     peak = float(fields.get("Peak", 0) or 0)
     return normal + (2 * fat_burn) + (3 * cardio) + (4 * peak)
+
+
+def _derive_training_load_fields(points, end_date_str: str) -> dict | None:
+    daily_load_by_date = {}
+    for point in points:
+        if point.get("measurement") != "HR zones":
+            continue
+        point_time = point.get("time", "")
+        if "T" not in point_time:
+            continue
+        point_date = point_time.split("T", 1)[0]
+        fields = point.get("fields", {})
+        normal = float(fields.get("Normal", 0) or 0)
+        fat_burn = float(fields.get("Fat Burn", 0) or 0)
+        cardio = float(fields.get("Cardio", 0) or 0)
+        peak = float(fields.get("Peak", 0) or 0)
+        load_value = normal + (2 * fat_burn) + (3 * cardio) + (4 * peak)
+        daily_load_by_date[point_date] = daily_load_by_date.get(point_date, 0.0) + load_value
+
+    if not daily_load_by_date:
+        return None
+
+    end_date = datetime.fromisoformat(end_date_str).date()
+    latest_available_date = max(daily_load_by_date.keys())
+    daily_load = daily_load_by_date.get(end_date_str, daily_load_by_date.get(latest_available_date, 0.0))
+
+    acute_days = [(end_date - timedelta(days=idx)).isoformat() for idx in range(0, 7)]
+    chronic_days = [(end_date - timedelta(days=idx)).isoformat() for idx in range(0, 28)]
+
+    acute_7d = sum(daily_load_by_date.get(day, 0.0) for day in acute_days) / 7.0
+    chronic_28d = sum(daily_load_by_date.get(day, 0.0) for day in chronic_days) / 28.0
+    load_ratio = acute_7d / chronic_28d if chronic_28d > 0 else 0.0
+
+    return {
+        "daily_load": round(float(daily_load), 2),
+        "acute_7d": round(float(acute_7d), 2),
+        "chronic_28d": round(float(chronic_28d), 2),
+        "load_ratio": round(float(load_ratio), 4),
+    }
 
 
 def _derive_recovery_score(points) -> dict | None:
@@ -89,19 +128,14 @@ def build_derived_points(
     metric_time = datetime.fromisoformat(end_date_str + "T00:00:00").isoformat() + "+00:00"
 
     if enable_training_load:
-        daily_load = _derive_daily_load_from_hr_zones(points)
-        if daily_load is not None:
+        training_load_fields = _derive_training_load_fields(points, end_date_str)
+        if training_load_fields is not None:
             derived_points.append(
                 {
                     "measurement": "Derived TrainingLoad",
                     "time": metric_time,
                     "tags": {"Device": devicename, "MetricClass": "Derived"},
-                    "fields": {
-                        "daily_load": round(float(daily_load), 2),
-                        "acute_7d": round(float(daily_load), 2),
-                        "chronic_28d": round(float(daily_load), 2),
-                        "load_ratio": 1.0,
-                    },
+                    "fields": training_load_fields,
                 }
             )
 

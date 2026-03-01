@@ -1,4 +1,5 @@
 import unittest
+from datetime import date, timedelta
 
 from fitbit_fetch.derived_metrics import build_derived_points
 
@@ -57,6 +58,35 @@ class DerivedMetricsTests(unittest.TestCase):
         self.assertEqual(derived[0]["fields"]["source"], "heuristic_rhr")
         self.assertEqual(derived[0]["fields"]["confidence"], 0.4)
         self.assertGreater(derived[0]["fields"]["vo2_estimate"], 0)
+
+    def test_training_load_rolling_windows(self):
+        end_date = date(2026, 2, 28)
+        points = []
+        for idx in range(0, 28):
+            day = (end_date - timedelta(days=idx)).isoformat()
+            points.append(
+                {
+                    "measurement": "HR zones",
+                    "time": f"{day}T00:00:00+00:00",
+                    "fields": {"Normal": 10, "Fat Burn": 0, "Cardio": 0, "Peak": 0},
+                }
+            )
+
+        derived = build_derived_points(
+            points=points,
+            devicename="ChargeX",
+            end_date_str=end_date.isoformat(),
+            enable_pipeline_health=False,
+            enable_recovery_score=False,
+            enable_training_load=True,
+            enable_cardio_fitness=False,
+        )
+        self.assertEqual(len(derived), 1)
+        self.assertEqual(derived[0]["measurement"], "Derived TrainingLoad")
+        self.assertEqual(derived[0]["fields"]["daily_load"], 10.0)
+        self.assertEqual(derived[0]["fields"]["acute_7d"], 10.0)
+        self.assertEqual(derived[0]["fields"]["chronic_28d"], 10.0)
+        self.assertEqual(derived[0]["fields"]["load_ratio"], 1.0)
 
 
 if __name__ == "__main__":

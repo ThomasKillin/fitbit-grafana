@@ -103,24 +103,28 @@ Recommended naming style for panel titles:
 
 - What it is: A simple daily strain score representing how hard your day was from a cardiovascular intensity perspective.
 - How it is derived (current v1 logic):
-  - Uses the latest `HR zones` point.
-  - Applies weighted zone minutes:
+  - Uses `HR zones` points in the current processing batch.
+  - Computes per-day weighted zone minutes:
     - `Normal * 1`
     - `Fat Burn * 2`
     - `Cardio * 3`
     - `Peak * 4`
+  - Aggregates by day and computes rolling averages ending at `end_date_str`:
+    - `acute_7d`: 7-day average load
+    - `chronic_28d`: 28-day average load
+    - `load_ratio = acute_7d / chronic_28d` (0 when chronic is 0)
   - Stores:
-    - `daily_load`: weighted total above.
-    - `acute_7d`: currently set equal to `daily_load` (placeholder for rolling 7-day load).
-    - `chronic_28d`: currently set equal to `daily_load` (placeholder for rolling 28-day load).
-    - `load_ratio`: currently fixed at `1.0` (placeholder for acute/chronic ratio).
+    - `daily_load`: load for `end_date_str` (or latest available day if missing).
+    - `acute_7d`: computed 7-day rolling average.
+    - `chronic_28d`: computed 28-day rolling average.
+    - `load_ratio`: computed acute/chronic ratio.
 - What it means: Higher value means more high-intensity time and therefore higher physiological strain for that day.
 - How it is useful:
   - Track day-to-day training stress.
   - Compare load with sleep/recovery markers.
   - Eventually support overload detection once rolling windows are implemented.
 - Caveats:
-  - v1 uses a single-day snapshot and placeholder rolling fields.
+  - Rolling windows are based on data available in the current run; missing days count as zero.
   - It is a heuristic, not a medical or coaching-grade training impulse model.
 
 ### `Derived RecoveryScore`
