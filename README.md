@@ -33,8 +33,9 @@ A script to fetch data from Fitbit servers using their API and store the data in
 - Historical data backfilling
 - Rate limit aware data collection
 
-✅ Available Influxdb database measurements and schema is available [here](extra/influxdb_schema.md)
-✅ Dashboard metric catalog (with `Direct` vs `Derived` classification) is available [here](extra/dashboard_metrics_catalog.md)
+- InfluxDB measurements and schema: [extra/influxdb_schema.md](extra/influxdb_schema.md)
+- Dashboard metric catalog (`Direct` vs `Derived`): [extra/dashboard_metrics_catalog.md](extra/dashboard_metrics_catalog.md)
+- Grafana panel query templates (`Direct` vs `Derived`): [extra/grafana_panel_templates.md](extra/grafana_panel_templates.md)
 
 ### Dashboard Clarity Rule
 
@@ -297,3 +298,4 @@ If you enjoy the script and love how it works with simple setup, please consider
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=arpanghosh8453/public-fitbit-projects&type=Date)](https://www.star-history.com/#arpanghosh8453/public-fitbit-projects&Date)
+
