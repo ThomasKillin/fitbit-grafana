@@ -8,6 +8,7 @@ Use these templates when creating new panels so dashboard intent stays clear:
 Import-ready derived block dashboard JSON:
 
 - [Grafana_Dashboard/Derived Metrics Block for influxdb-v1.json](../Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v1.json)
+- Improved full dashboard with fixes: [Grafana_Dashboard/Health Stats Dashboard for influxdb-v1 - improved.json](../Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v1%20-%20improved.json)
 
 Quick usage:
 
