@@ -14,6 +14,7 @@ from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, y
 from fitbit_fetch.derived_metrics import build_derived_points
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
 from fitbit_fetch.influx_writer import InfluxWriter
+from fitbit_fetch.metric_classification import annotate_points_with_metric_class
 from fitbit_fetch.runner import run_scheduled_auto_update_loop, run_startup_or_bulk_update
 from fitbit_fetch.run_utils import build_date_list, write_and_reset_records
 from fitbit_fetch.services import AppServices
@@ -116,8 +117,9 @@ def Get_New_Access_Token():
 def write_points_to_influxdb(points):
     if APP_SERVICES.influx_writer is None:
         raise RuntimeError("Influx writer is not initialized")
+    direct_points = annotate_points_with_metric_class(points, "Direct")
     derived_points = build_derived_points(
-        points=points,
+        points=direct_points,
         devicename=APP_SERVICES.devicename,
         end_date_str=APP_STATE.end_date_str or datetime.utcnow().strftime("%Y-%m-%d"),
         enable_pipeline_health=ENABLE_DERIVED_PIPELINE_HEALTH,
@@ -125,7 +127,7 @@ def write_points_to_influxdb(points):
         enable_training_load=ENABLE_DERIVED_TRAINING_LOAD,
         enable_cardio_fitness=ENABLE_DERIVED_CARDIO_FITNESS,
     )
-    APP_SERVICES.influx_writer.write_points(points + derived_points)
+    APP_SERVICES.influx_writer.write_points(direct_points + derived_points)
 
 def initialize_clients():
     APP_SERVICES.fitbit_client = FitbitClient(

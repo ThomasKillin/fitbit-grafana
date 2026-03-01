@@ -82,6 +82,7 @@ You can enable/disable them with environment flags:
 - `ENABLE_DERIVED_CARDIO_FITNESS` (default: `false`)
 
 If enabled, these measurements are written with `Derived ...` prefixes so they are easy to group under a dedicated `Derived Measurements` section in Grafana.
+All written points now also include a `MetricClass` tag (`Direct` or `Derived`) so Grafana panels/variables can filter explicitly by class.
 
 ## Install with Docker (Recommended)
 

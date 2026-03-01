@@ -327,3 +327,9 @@
 
 ---
 
+## Common Tag Convention
+
+All points written by the current pipeline include:
+
+- `MetricClass`: `Direct` for API-native measurements and `Derived` for computed measurements.
+
