@@ -134,9 +134,16 @@ def _latest_value_by_date(points, measurement_name: str, field_name: str) -> dic
     return values
 
 
-def _derive_correlation_signals(points, end_date_str: str) -> dict | None:
-    end_date = datetime.fromisoformat(end_date_str).date()
-    prev_date_str = (end_date - timedelta(days=1)).isoformat()
+def _derive_delta_from_latest_two(by_date: dict) -> float | None:
+    if len(by_date) < 2:
+        return None
+    sorted_dates = sorted(by_date.keys())
+    latest_date = sorted_dates[-1]
+    previous_date = sorted_dates[-2]
+    return by_date[latest_date] - by_date[previous_date]
+
+
+def _derive_correlation_signals(points) -> dict | None:
 
     signal_defs = [
         ("rhr_delta", "RestingHR", "value"),
@@ -148,11 +155,10 @@ def _derive_correlation_signals(points, end_date_str: str) -> dict | None:
     out = {}
     for out_field, measurement, field in signal_defs:
         by_date = _latest_value_by_date(points, measurement, field)
-        today_val = by_date.get(end_date_str)
-        prev_val = by_date.get(prev_date_str)
-        if today_val is None or prev_val is None:
+        delta = _derive_delta_from_latest_two(by_date)
+        if delta is None:
             continue
-        out[out_field] = round(today_val - prev_val, 2)
+        out[out_field] = round(delta, 2)
 
     if not out:
         return None
@@ -210,7 +216,7 @@ def build_derived_points(
             )
 
     if enable_correlation_signals:
-        correlation_fields = _derive_correlation_signals(points, end_date_str)
+        correlation_fields = _derive_correlation_signals(points)
         if correlation_fields is not None:
             derived_points.append(
                 {

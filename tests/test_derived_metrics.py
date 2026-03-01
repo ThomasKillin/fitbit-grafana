@@ -120,6 +120,25 @@ class DerivedMetricsTests(unittest.TestCase):
         self.assertEqual(derived[0]["fields"]["sleep_minutes_delta"], 20.0)
         self.assertEqual(derived[0]["fields"]["steps_delta"], 1250.0)
 
+    def test_correlation_signals_uses_latest_two_available_days(self):
+        points = [
+            {"measurement": "RestingHR", "time": "2026-02-24T23:00:00+00:00", "fields": {"value": 60}},
+            {"measurement": "RestingHR", "time": "2026-02-25T23:00:00+00:00", "fields": {"value": 57}},
+        ]
+        derived = build_derived_points(
+            points=points,
+            devicename="ChargeX",
+            end_date_str="2026-02-28",
+            enable_pipeline_health=False,
+            enable_recovery_score=False,
+            enable_training_load=False,
+            enable_cardio_fitness=False,
+            enable_correlation_signals=True,
+        )
+        self.assertEqual(len(derived), 1)
+        self.assertEqual(derived[0]["measurement"], "Derived CorrelationSignals")
+        self.assertEqual(derived[0]["fields"]["rhr_delta"], -3.0)
+
 
 if __name__ == "__main__":
     unittest.main()

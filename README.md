@@ -142,7 +142,7 @@ services:
       - ENABLE_DERIVED_RECOVERY_SCORE=False # Derived RecoveryScore measurement
       - ENABLE_DERIVED_TRAINING_LOAD=False # Derived TrainingLoad measurement
       - ENABLE_DERIVED_CARDIO_FITNESS=False # Derived CardioFitness measurement (RHR heuristic)
-      - ENABLE_DERIVED_CORRELATION_SIGNALS=False # Derived CorrelationSignals (day-over-day deltas)
+      - ENABLE_DERIVED_CORRELATION_SIGNALS=False # Derived CorrelationSignals (latest-two-day deltas per signal)
       - INFLUXDB_VERSION=1
       - INFLUXDB_HOST=influxdb
       - INFLUXDB_PORT=8086

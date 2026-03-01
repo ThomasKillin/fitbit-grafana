@@ -198,14 +198,14 @@ Recommended naming style for panel titles:
 
 - What it is: A compact set of day-over-day change values for key recovery and activity inputs.
 - How it is derived (current v1 logic):
-  - Compares `end_date_str` vs previous day (`end_date_str - 1 day`) for:
+  - For each signal, compares the latest two available daily values in the current processing batch:
     - `RestingHR.value` -> `rhr_delta`
     - `HRV.dailyRmssd` -> `hrv_delta`
     - `Sleep Summary.minutesAsleep` -> `sleep_minutes_delta`
     - `Total Steps.value` -> `steps_delta`
   - Formula for each field:
-    - `delta = today_value - previous_day_value`
-  - Writes only fields that have both days available.
+    - `delta = latest_value - previous_value`
+  - Writes only fields that have at least two daily values available.
 - What it means:
   - Positive/negative deltas show direction and size of short-term change.
   - Example: negative `rhr_delta` and positive `hrv_delta` often suggest improved recovery conditions.
@@ -214,8 +214,8 @@ Recommended naming style for panel titles:
   - Correlation overlays against `Derived RecoveryScore` and `Derived TrainingLoad`.
   - Alerting on abrupt shifts (for example large negative sleep delta).
 - Caveats:
-  - It is a short-window feature (1-day lookback), not a trend model.
-  - Missing previous-day data suppresses that specific field.
+  - It is a short-window feature, not a trend model.
+  - If a signal has fewer than two daily values in the current batch, that field is omitted.
 
 ---
 
