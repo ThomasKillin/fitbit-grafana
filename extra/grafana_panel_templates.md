@@ -42,6 +42,19 @@ WHERE $timeFilter
 GROUP BY time($__interval) fill(null)
 ```
 
+### Derived correlation signals template
+
+```sql
+SELECT mean("rhr_delta") AS "rhr_delta",
+       mean("hrv_delta") AS "hrv_delta",
+       mean("sleep_minutes_delta") AS "sleep_minutes_delta",
+       mean("steps_delta") AS "steps_delta"
+FROM "Derived CorrelationSignals"
+WHERE $timeFilter
+  AND "MetricClass"='Derived'
+GROUP BY time($__interval) fill(null)
+```
+
 ---
 
 ## InfluxDB v2 (Flux)
@@ -80,6 +93,7 @@ from(bucket: v.defaultBucket)
 - `[Derived] Training Load (daily_load, acute_7d, chronic_28d)`
 - `[Derived] Load Ratio (load_ratio)`
 - `[Derived] Cardio Fitness (vo2_estimate)`
+- `[Derived] Correlation Signals (rhr_delta, hrv_delta, sleep_minutes_delta, steps_delta)`
 - `[Derived] Pipeline Health (record_count_last_run)`
 
 ---

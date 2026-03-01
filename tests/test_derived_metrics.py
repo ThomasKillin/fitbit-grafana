@@ -15,6 +15,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_recovery_score=False,
             enable_training_load=False,
             enable_cardio_fitness=False,
+            enable_correlation_signals=False,
         )
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived PipelineHealth")
@@ -36,6 +37,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_recovery_score=True,
             enable_training_load=True,
             enable_cardio_fitness=False,
+            enable_correlation_signals=False,
         )
         measurements = {point["measurement"] for point in derived}
         self.assertIn("Derived TrainingLoad", measurements)
@@ -52,6 +54,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_recovery_score=False,
             enable_training_load=False,
             enable_cardio_fitness=True,
+            enable_correlation_signals=False,
         )
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived CardioFitness")
@@ -80,6 +83,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_recovery_score=False,
             enable_training_load=True,
             enable_cardio_fitness=False,
+            enable_correlation_signals=False,
         )
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived TrainingLoad")
@@ -87,6 +91,34 @@ class DerivedMetricsTests(unittest.TestCase):
         self.assertEqual(derived[0]["fields"]["acute_7d"], 10.0)
         self.assertEqual(derived[0]["fields"]["chronic_28d"], 10.0)
         self.assertEqual(derived[0]["fields"]["load_ratio"], 1.0)
+
+    def test_correlation_signals_day_over_day_deltas(self):
+        points = [
+            {"measurement": "RestingHR", "time": "2026-02-27T00:00:00+00:00", "fields": {"value": 58}},
+            {"measurement": "RestingHR", "time": "2026-02-28T00:00:00+00:00", "fields": {"value": 56}},
+            {"measurement": "HRV", "time": "2026-02-27T00:00:00+00:00", "fields": {"dailyRmssd": 40}},
+            {"measurement": "HRV", "time": "2026-02-28T00:00:00+00:00", "fields": {"dailyRmssd": 44}},
+            {"measurement": "Sleep Summary", "time": "2026-02-27T00:00:00+00:00", "fields": {"minutesAsleep": 410}},
+            {"measurement": "Sleep Summary", "time": "2026-02-28T00:00:00+00:00", "fields": {"minutesAsleep": 430}},
+            {"measurement": "Total Steps", "time": "2026-02-27T00:00:00+00:00", "fields": {"value": 9000}},
+            {"measurement": "Total Steps", "time": "2026-02-28T00:00:00+00:00", "fields": {"value": 10250}},
+        ]
+        derived = build_derived_points(
+            points=points,
+            devicename="ChargeX",
+            end_date_str="2026-02-28",
+            enable_pipeline_health=False,
+            enable_recovery_score=False,
+            enable_training_load=False,
+            enable_cardio_fitness=False,
+            enable_correlation_signals=True,
+        )
+        self.assertEqual(len(derived), 1)
+        self.assertEqual(derived[0]["measurement"], "Derived CorrelationSignals")
+        self.assertEqual(derived[0]["fields"]["rhr_delta"], -2.0)
+        self.assertEqual(derived[0]["fields"]["hrv_delta"], 4.0)
+        self.assertEqual(derived[0]["fields"]["sleep_minutes_delta"], 20.0)
+        self.assertEqual(derived[0]["fields"]["steps_delta"], 1250.0)
 
 
 if __name__ == "__main__":

@@ -92,6 +92,7 @@ Recommended naming style for panel titles:
 | --- | --- | --- | --- | --- |
 | Training load | `Derived TrainingLoad` | `daily_load`, `acute_7d`, `chronic_28d`, `load_ratio` | Latest HR zone durations | Implemented (feature-flagged) |
 | Recovery score | `Derived RecoveryScore` | `score`, `sleep_component`, `hrv_component`, `rhr_component`, `strain_component` | Sleep Summary, HRV, RestingHR, HR zones | Implemented (feature-flagged) |
+| Correlation signals | `Derived CorrelationSignals` | `rhr_delta`, `hrv_delta`, `sleep_minutes_delta`, `steps_delta` | Day-over-day differences from direct measurements | Implemented (feature-flagged) |
 | Pipeline freshness | `Derived PipelineHealth` | `last_success_epoch`, `minutes_since_success`, `record_count_last_run` | Runtime fetch/write state | Implemented (default on) |
 | Cardio fitness / VO2 trend | `Derived CardioFitness` | `vo2_estimate`, `source`, `confidence` | RestingHR-based heuristic (v1) | Implemented (feature-flagged) |
 
@@ -192,6 +193,29 @@ Recommended naming style for panel titles:
   - v1 is intentionally heuristic and based only on resting HR.
   - Should be interpreted as trend guidance, not lab-grade VO2 max testing.
   - Future versions should prefer device/source-native VO2 estimates when available.
+
+### `Derived CorrelationSignals`
+
+- What it is: A compact set of day-over-day change values for key recovery and activity inputs.
+- How it is derived (current v1 logic):
+  - Compares `end_date_str` vs previous day (`end_date_str - 1 day`) for:
+    - `RestingHR.value` -> `rhr_delta`
+    - `HRV.dailyRmssd` -> `hrv_delta`
+    - `Sleep Summary.minutesAsleep` -> `sleep_minutes_delta`
+    - `Total Steps.value` -> `steps_delta`
+  - Formula for each field:
+    - `delta = today_value - previous_day_value`
+  - Writes only fields that have both days available.
+- What it means:
+  - Positive/negative deltas show direction and size of short-term change.
+  - Example: negative `rhr_delta` and positive `hrv_delta` often suggest improved recovery conditions.
+- How it is useful:
+  - Fast signal panel for “what changed since yesterday”.
+  - Correlation overlays against `Derived RecoveryScore` and `Derived TrainingLoad`.
+  - Alerting on abrupt shifts (for example large negative sleep delta).
+- Caveats:
+  - It is a short-window feature (1-day lookback), not a trend model.
+  - Missing previous-day data suppresses that specific field.
 
 ---
 

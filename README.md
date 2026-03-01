@@ -81,6 +81,7 @@ You can enable/disable them with environment flags:
 - `ENABLE_DERIVED_RECOVERY_SCORE` (default: `false`)
 - `ENABLE_DERIVED_TRAINING_LOAD` (default: `false`)
 - `ENABLE_DERIVED_CARDIO_FITNESS` (default: `false`)
+- `ENABLE_DERIVED_CORRELATION_SIGNALS` (default: `false`)
 
 If enabled, these measurements are written with `Derived ...` prefixes so they are easy to group under a dedicated `Derived Measurements` section in Grafana.
 All written points now also include a `MetricClass` tag (`Direct` or `Derived`) so Grafana panels/variables can filter explicitly by class.
@@ -141,6 +142,7 @@ services:
       - ENABLE_DERIVED_RECOVERY_SCORE=False # Derived RecoveryScore measurement
       - ENABLE_DERIVED_TRAINING_LOAD=False # Derived TrainingLoad measurement
       - ENABLE_DERIVED_CARDIO_FITNESS=False # Derived CardioFitness measurement (RHR heuristic)
+      - ENABLE_DERIVED_CORRELATION_SIGNALS=False # Derived CorrelationSignals (day-over-day deltas)
       - INFLUXDB_VERSION=1
       - INFLUXDB_HOST=influxdb
       - INFLUXDB_PORT=8086

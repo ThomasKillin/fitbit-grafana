@@ -114,6 +114,51 @@ def _derive_cardio_fitness(points) -> dict | None:
     }
 
 
+def _latest_value_by_date(points, measurement_name: str, field_name: str) -> dict:
+    values = {}
+    for point in points:
+        if point.get("measurement") != measurement_name:
+            continue
+        point_time = point.get("time", "")
+        if "T" not in point_time:
+            continue
+        date_str = point_time.split("T", 1)[0]
+        fields = point.get("fields", {})
+        raw_value = fields.get(field_name)
+        if raw_value is None:
+            continue
+        try:
+            values[date_str] = float(raw_value)
+        except (TypeError, ValueError):
+            continue
+    return values
+
+
+def _derive_correlation_signals(points, end_date_str: str) -> dict | None:
+    end_date = datetime.fromisoformat(end_date_str).date()
+    prev_date_str = (end_date - timedelta(days=1)).isoformat()
+
+    signal_defs = [
+        ("rhr_delta", "RestingHR", "value"),
+        ("hrv_delta", "HRV", "dailyRmssd"),
+        ("sleep_minutes_delta", "Sleep Summary", "minutesAsleep"),
+        ("steps_delta", "Total Steps", "value"),
+    ]
+
+    out = {}
+    for out_field, measurement, field in signal_defs:
+        by_date = _latest_value_by_date(points, measurement, field)
+        today_val = by_date.get(end_date_str)
+        prev_val = by_date.get(prev_date_str)
+        if today_val is None or prev_val is None:
+            continue
+        out[out_field] = round(today_val - prev_val, 2)
+
+    if not out:
+        return None
+    return out
+
+
 def build_derived_points(
     *,
     points,
@@ -123,6 +168,7 @@ def build_derived_points(
     enable_recovery_score: bool,
     enable_training_load: bool,
     enable_cardio_fitness: bool,
+    enable_correlation_signals: bool,
 ):
     derived_points = []
     metric_time = datetime.fromisoformat(end_date_str + "T00:00:00").isoformat() + "+00:00"
@@ -160,6 +206,18 @@ def build_derived_points(
                     "time": metric_time,
                     "tags": {"Device": devicename, "MetricClass": "Derived"},
                     "fields": cardio_fitness_fields,
+                }
+            )
+
+    if enable_correlation_signals:
+        correlation_fields = _derive_correlation_signals(points, end_date_str)
+        if correlation_fields is not None:
+            derived_points.append(
+                {
+                    "measurement": "Derived CorrelationSignals",
+                    "time": metric_time,
+                    "tags": {"Device": devicename, "MetricClass": "Derived"},
+                    "fields": correlation_fields,
                 }
             )
 

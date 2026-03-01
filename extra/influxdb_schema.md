@@ -80,6 +80,22 @@
 
 ---
 
+### Measurement: `Derived CorrelationSignals`
+
+| Field Key | Field Type |
+| --- | --- |
+| `rhr_delta` | float |
+| `hrv_delta` | float |
+| `sleep_minutes_delta` | float |
+| `steps_delta` | float |
+
+| Tag Key | Tag Type |
+| --- | --- |
+| `Device` | string |
+| `MetricClass` | string |
+
+---
+
 ### Measurement: `Derived RecoveryScore`
 
 | Field Key | Field Type |

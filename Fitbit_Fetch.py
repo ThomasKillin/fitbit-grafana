@@ -55,6 +55,7 @@ ENABLE_DERIVED_PIPELINE_HEALTH = CONFIG.enable_derived_pipeline_health
 ENABLE_DERIVED_RECOVERY_SCORE = CONFIG.enable_derived_recovery_score
 ENABLE_DERIVED_TRAINING_LOAD = CONFIG.enable_derived_training_load
 ENABLE_DERIVED_CARDIO_FITNESS = CONFIG.enable_derived_cardio_fitness
+ENABLE_DERIVED_CORRELATION_SIGNALS = CONFIG.enable_derived_correlation_signals
 APP_STATE = RuntimeState()
 APP_SERVICES = AppServices(
     client_id=CONFIG.client_id,
@@ -126,6 +127,7 @@ def write_points_to_influxdb(points):
         enable_recovery_score=ENABLE_DERIVED_RECOVERY_SCORE,
         enable_training_load=ENABLE_DERIVED_TRAINING_LOAD,
         enable_cardio_fitness=ENABLE_DERIVED_CARDIO_FITNESS,
+        enable_correlation_signals=ENABLE_DERIVED_CORRELATION_SIGNALS,
     )
     APP_SERVICES.influx_writer.write_points(direct_points + derived_points)
 
