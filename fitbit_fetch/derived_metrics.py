@@ -175,6 +175,7 @@ def build_derived_points(
     enable_training_load: bool,
     enable_cardio_fitness: bool,
     enable_correlation_signals: bool,
+    pipeline_previous_success_epoch: int | None = None,
 ):
     derived_points = []
     metric_time = datetime.fromisoformat(end_date_str + "T00:00:00").isoformat() + "+00:00"
@@ -228,14 +229,18 @@ def build_derived_points(
             )
 
     if enable_pipeline_health:
+        now_epoch = int(time.time())
+        minutes_since_success = 0.0
+        if pipeline_previous_success_epoch is not None:
+            minutes_since_success = max(0.0, round((now_epoch - pipeline_previous_success_epoch) / 60.0, 3))
         derived_points.append(
             {
                 "measurement": "Derived PipelineHealth",
                 "time": datetime.utcnow().replace(microsecond=0).isoformat() + "+00:00",
                 "tags": {"Device": devicename, "MetricClass": "Derived"},
                 "fields": {
-                    "last_success_epoch": int(time.time()),
-                    "minutes_since_success": 0.0,
+                    "last_success_epoch": now_epoch,
+                    "minutes_since_success": minutes_since_success,
                     "record_count_last_run": int(len(points)),
                 },
             }

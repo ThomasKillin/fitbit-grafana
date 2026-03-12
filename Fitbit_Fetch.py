@@ -128,8 +128,10 @@ def write_points_to_influxdb(points):
         enable_training_load=ENABLE_DERIVED_TRAINING_LOAD,
         enable_cardio_fitness=ENABLE_DERIVED_CARDIO_FITNESS,
         enable_correlation_signals=ENABLE_DERIVED_CORRELATION_SIGNALS,
+        pipeline_previous_success_epoch=APP_STATE.last_pipeline_success_epoch,
     )
     APP_SERVICES.influx_writer.write_points(direct_points + derived_points)
+    APP_STATE.last_pipeline_success_epoch = int(time.time())
 
 def initialize_clients():
     APP_SERVICES.fitbit_client = FitbitClient(

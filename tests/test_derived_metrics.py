@@ -16,6 +16,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=False,
             enable_cardio_fitness=False,
             enable_correlation_signals=False,
+            pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived PipelineHealth")
@@ -38,6 +39,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=True,
             enable_cardio_fitness=False,
             enable_correlation_signals=False,
+            pipeline_previous_success_epoch=None,
         )
         measurements = {point["measurement"] for point in derived}
         self.assertIn("Derived TrainingLoad", measurements)
@@ -55,6 +57,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=False,
             enable_cardio_fitness=True,
             enable_correlation_signals=False,
+            pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived CardioFitness")
@@ -84,6 +87,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=True,
             enable_cardio_fitness=False,
             enable_correlation_signals=False,
+            pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived TrainingLoad")
@@ -112,6 +116,7 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=False,
             enable_cardio_fitness=False,
             enable_correlation_signals=True,
+            pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived CorrelationSignals")
@@ -134,10 +139,26 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=False,
             enable_cardio_fitness=False,
             enable_correlation_signals=True,
+            pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
         self.assertEqual(derived[0]["measurement"], "Derived CorrelationSignals")
         self.assertEqual(derived[0]["fields"]["rhr_delta"], -3.0)
+
+    def test_pipeline_health_minutes_since_previous_success(self):
+        derived = build_derived_points(
+            points=[{"measurement": "Total Steps", "time": "2026-02-28T00:00:00+00:00", "fields": {"value": 100}}],
+            devicename="ChargeX",
+            end_date_str="2026-02-28",
+            enable_pipeline_health=True,
+            enable_recovery_score=False,
+            enable_training_load=False,
+            enable_cardio_fitness=False,
+            enable_correlation_signals=False,
+            pipeline_previous_success_epoch=0,
+        )
+        self.assertEqual(derived[0]["measurement"], "Derived PipelineHealth")
+        self.assertGreaterEqual(derived[0]["fields"]["minutes_since_success"], 1.0)
 
 
 if __name__ == "__main__":

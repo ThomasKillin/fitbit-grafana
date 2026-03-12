@@ -3,8 +3,9 @@
 These templates use `Derived PipelineHealth` so you can detect ingestion failures early.
 
 Current behavior note:
-- `minutes_since_success` is written as `0` at ingestion time.
-- For alerting, prefer query-window presence/count logic rather than `minutes_since_success`.
+- `minutes_since_success` reflects elapsed minutes since the previous successful write in the current process.
+- After service restarts, the first write resets `minutes_since_success` to `0`.
+- For robust alerting, still prefer query-window presence/count logic.
 
 ---
 

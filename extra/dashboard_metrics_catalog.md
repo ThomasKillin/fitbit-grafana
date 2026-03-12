@@ -163,7 +163,7 @@ Recommended naming style for panel titles:
 - How it is derived:
   - Written on each successful run.
   - `last_success_epoch`: current Unix timestamp when write completes.
-  - `minutes_since_success`: currently set to `0.0` at write time.
+  - `minutes_since_success`: elapsed minutes since the previous successful write in the running process.
   - `record_count_last_run`: number of direct records included in that run.
 - What it means:
   - Confirms ingestion is alive and how much data was processed.
@@ -172,7 +172,7 @@ Recommended naming style for panel titles:
   - Build Grafana alerts for stale pipeline.
   - Diagnose runs with unexpectedly low data volume.
 - Caveats:
-  - `minutes_since_success` is currently write-time only; elapsed-time behavior is better computed in Grafana query expressions.
+  - `minutes_since_success` is process-local; after a service restart, first write resets it to `0.0`.
 
 ### `Derived CardioFitness`
 
