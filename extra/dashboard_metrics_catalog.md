@@ -18,6 +18,16 @@ Recommended naming style for panel titles:
 - Direct panel title prefix: `[Direct]`
 - Derived panel title prefix: `[Derived]`
 
+## Derived Backfill Behavior
+
+- `Derived` metrics are computed during normal ingestion runs.
+- Optional startup auto-backfill can recompute derived metrics from existing direct points in InfluxDB.
+- Auto-backfill is controlled with:
+  - `ENABLE_DERIVED_AUTO_BACKFILL`
+  - `DERIVED_AUTO_BACKFILL_DAYS`
+  - `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN`
+- Auto-backfill writes only `Derived ...` measurements and preserves the `MetricClass='Derived'` tag split.
+
 ---
 
 ## Direct Measurements (Current)

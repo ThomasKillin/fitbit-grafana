@@ -1,5 +1,6 @@
 import unittest
 from datetime import date, timedelta
+from datetime import datetime
 
 from fitbit_fetch.derived_metrics import build_derived_points
 
@@ -187,6 +188,7 @@ class DerivedMetricsTests(unittest.TestCase):
         )
         self.assertEqual(derived[0]["measurement"], "Derived PipelineHealth")
         self.assertGreaterEqual(derived[0]["fields"]["minutes_since_success"], 1.0)
+        self.assertIsNotNone(datetime.fromisoformat(derived[0]["time"]).tzinfo)
 
     def test_correlation_matrix_zscores_trends_and_flags(self):
         end_date = date(2026, 2, 28)

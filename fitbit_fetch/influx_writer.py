@@ -1,5 +1,7 @@
 """InfluxDB initialization and write wrapper."""
 
+from datetime import datetime, timedelta, timezone
+
 from influxdb import InfluxDBClient
 from influxdb.exceptions import InfluxDBClientError
 from influxdb_client import InfluxDBClient as InfluxDBClient2
@@ -92,3 +94,90 @@ class InfluxWriter:
         else:
             self.logger.error("No matching version found. Supported values are 1 and 2 and 3")
             raise InfluxDBClientError("No matching version found. Supported values are 1 and 2 and 3")
+
+    def fetch_direct_points_for_day(self, day_str: str, measurements: list[str]) -> list[dict]:
+        """Fetch direct points for a UTC day window for selected measurements."""
+        if not measurements:
+            return []
+
+        day_start = datetime.strptime(day_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        day_end = day_start + timedelta(days=1)
+        start_iso = day_start.isoformat().replace("+00:00", "Z")
+        end_iso = day_end.isoformat().replace("+00:00", "Z")
+
+        if self.version == "1":
+            return self._fetch_direct_points_v1(start_iso=start_iso, end_iso=end_iso, measurements=measurements)
+        if self.version == "2":
+            return self._fetch_direct_points_v2(start_iso=start_iso, end_iso=end_iso, measurements=measurements)
+
+        self.logger.warning("Derived auto-backfill only supports InfluxDB v1/v2 currently")
+        return []
+
+    def _fetch_direct_points_v1(self, *, start_iso: str, end_iso: str, measurements: list[str]) -> list[dict]:
+        points = []
+        for measurement in measurements:
+            query = (
+                f'SELECT * FROM "{measurement}" '
+                f"WHERE time >= '{start_iso}' AND time < '{end_iso}' AND \"MetricClass\"='Direct'"
+            )
+            result = self._client.query(query)
+            for row in result.get_points(measurement=measurement):
+                tags = {}
+                fields = {}
+                for key, value in row.items():
+                    if key == "time" or value is None:
+                        continue
+                    if key in {"Device", "MetricClass"}:
+                        tags[key] = str(value)
+                        continue
+                    fields[key] = value
+                if fields:
+                    points.append(
+                        {
+                            "measurement": measurement,
+                            "time": row.get("time"),
+                            "tags": tags,
+                            "fields": fields,
+                        }
+                    )
+        return points
+
+    def _fetch_direct_points_v2(self, *, start_iso: str, end_iso: str, measurements: list[str]) -> list[dict]:
+        measurement_filter = " or ".join([f'r._measurement == "{m}"' for m in measurements])
+        query = (
+            f'from(bucket: "{self.bucket}")\n'
+            f"  |> range(start: time(v: \"{start_iso}\"), stop: time(v: \"{end_iso}\"))\n"
+            f"  |> filter(fn: (r) => {measurement_filter})\n"
+            "  |> filter(fn: (r) => r.MetricClass == \"Direct\")\n"
+            "  |> pivot(rowKey:[\"_time\",\"_measurement\",\"Device\",\"MetricClass\"], columnKey:[\"_field\"], valueColumn:\"_value\")"
+        )
+        tables = self._client.query_api().query(org=self.org, query=query)
+        points = []
+        for table in tables:
+            for record in table.records:
+                values = record.values
+                measurement = values.get("_measurement")
+                timestamp = values.get("_time")
+                if measurement is None or timestamp is None:
+                    continue
+
+                tags = {}
+                fields = {}
+                for key, value in values.items():
+                    if key.startswith("_") or key in {"result", "table", "_start", "_stop"} or value is None:
+                        continue
+                    if key in {"Device", "MetricClass"}:
+                        tags[key] = str(value)
+                    else:
+                        fields[key] = value
+
+                if fields:
+                    points.append(
+                        {
+                            "measurement": measurement,
+                            "time": timestamp.isoformat(),
+                            "tags": tags,
+                            "fields": fields,
+                        }
+                    )
+        return points

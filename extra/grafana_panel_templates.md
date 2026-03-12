@@ -10,6 +10,7 @@ Import-ready derived block dashboard JSON:
 - [Grafana_Dashboard/Derived Metrics Block for influxdb-v1.json](../Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v1.json)
 - [Grafana_Dashboard/Derived Metrics Block for influxdb-v2.json](../Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v2.json) (`Flux` datasource required)
 - Improved full dashboard with fixes: [Grafana_Dashboard/Health Stats Dashboard for influxdb-v1 - improved.json](../Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v1%20-%20improved.json)
+- Improved full dashboard with fixes (Flux): [Grafana_Dashboard/Health Stats Dashboard for influxdb-v2 - improved.json](../Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v2%20-%20improved.json)
 - Alert templates for pipeline monitoring: [extra/grafana_alert_templates.md](./grafana_alert_templates.md)
 
 ## Compatibility Matrix
@@ -19,6 +20,7 @@ Import-ready derived block dashboard JSON:
   - Use `Health Stats Dashboard for influxdb-v1 - improved.json`
 - If your Grafana datasource uses Flux / InfluxDB v2:
   - Use `Derived Metrics Block for influxdb-v2.json`
+  - Or use `Health Stats Dashboard for influxdb-v2 - improved.json` for full dashboard + derived row
 
 ## Common Import Error
 

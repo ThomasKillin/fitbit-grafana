@@ -46,6 +46,9 @@ class ConfigTests(unittest.TestCase):
         self.assertFalse(config.enable_derived_zscores)
         self.assertFalse(config.enable_derived_trend_signals)
         self.assertFalse(config.enable_derived_readiness_flags)
+        self.assertFalse(config.enable_derived_auto_backfill)
+        self.assertEqual(config.derived_auto_backfill_days, 30)
+        self.assertEqual(config.derived_auto_backfill_max_days_per_run, 90)
 
     def test_derived_feature_flags_override(self):
         with patch.dict(
@@ -60,6 +63,9 @@ class ConfigTests(unittest.TestCase):
                 "ENABLE_DERIVED_ZSCORES": "true",
                 "ENABLE_DERIVED_TREND_SIGNALS": "true",
                 "ENABLE_DERIVED_READINESS_FLAGS": "true",
+                "ENABLE_DERIVED_AUTO_BACKFILL": "true",
+                "DERIVED_AUTO_BACKFILL_DAYS": "45",
+                "DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN": "60",
             },
             clear=True,
         ):
@@ -73,6 +79,9 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(config.enable_derived_zscores)
         self.assertTrue(config.enable_derived_trend_signals)
         self.assertTrue(config.enable_derived_readiness_flags)
+        self.assertTrue(config.enable_derived_auto_backfill)
+        self.assertEqual(config.derived_auto_backfill_days, 45)
+        self.assertEqual(config.derived_auto_backfill_max_days_per_run, 60)
 
 
 if __name__ == "__main__":

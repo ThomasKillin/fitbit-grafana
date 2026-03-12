@@ -1,6 +1,6 @@
 # %%
 import schedule, time, pytz, logging, sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fitbit_fetch.collectors_activity import collect_latest_activities, collect_tcx_data
 from fitbit_fetch.collectors_basic import collect_battery_level, collect_intraday_data_limit_1d
 from fitbit_fetch.collectors_daily import (
@@ -12,6 +12,7 @@ from fitbit_fetch.collectors_daily import (
 from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
 from fitbit_fetch.derived_metrics import build_derived_points
+from fitbit_fetch.derived_backfill import run_derived_startup_auto_backfill
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
 from fitbit_fetch.influx_writer import InfluxWriter
 from fitbit_fetch.metric_classification import annotate_points_with_metric_class
@@ -60,6 +61,9 @@ ENABLE_DERIVED_CORRELATION_MATRIX = CONFIG.enable_derived_correlation_matrix
 ENABLE_DERIVED_ZSCORES = CONFIG.enable_derived_zscores
 ENABLE_DERIVED_TREND_SIGNALS = CONFIG.enable_derived_trend_signals
 ENABLE_DERIVED_READINESS_FLAGS = CONFIG.enable_derived_readiness_flags
+ENABLE_DERIVED_AUTO_BACKFILL = CONFIG.enable_derived_auto_backfill
+DERIVED_AUTO_BACKFILL_DAYS = CONFIG.derived_auto_backfill_days
+DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN = CONFIG.derived_auto_backfill_max_days_per_run
 APP_STATE = RuntimeState()
 APP_SERVICES = AppServices(
     client_id=CONFIG.client_id,
@@ -303,6 +307,24 @@ def fetch_latest_activities(end_date_str):
 def main():
     initialize_clients()
     initialize_runtime_state()
+    run_derived_startup_auto_backfill(
+        enabled=ENABLE_DERIVED_AUTO_BACKFILL,
+        influx_writer=APP_SERVICES.influx_writer,
+        logger=logging,
+        devicename=APP_SERVICES.devicename,
+        end_date_str=APP_STATE.end_date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        requested_days=DERIVED_AUTO_BACKFILL_DAYS,
+        max_days_per_run=DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN,
+        enable_recovery_score=ENABLE_DERIVED_RECOVERY_SCORE,
+        enable_training_load=ENABLE_DERIVED_TRAINING_LOAD,
+        enable_cardio_fitness=ENABLE_DERIVED_CARDIO_FITNESS,
+        enable_correlation_signals=ENABLE_DERIVED_CORRELATION_SIGNALS,
+        enable_correlation_matrix=ENABLE_DERIVED_CORRELATION_MATRIX,
+        enable_zscores=ENABLE_DERIVED_ZSCORES,
+        enable_trend_signals=ENABLE_DERIVED_TREND_SIGNALS,
+        enable_readiness_flags=ENABLE_DERIVED_READINESS_FLAGS,
+        sleep_fn=time.sleep,
+    )
 
     # %% [markdown]
     # ## Call the functions one time as a startup update OR do switch to bulk update mode

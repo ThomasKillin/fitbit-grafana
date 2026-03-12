@@ -40,6 +40,7 @@ A script to fetch data from Fitbit servers using their API and store the data in
 - Import-ready derived block dashboard (InfluxDB v1): [Grafana_Dashboard/Derived Metrics Block for influxdb-v1.json](Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v1.json)
 - Import-ready derived block dashboard (InfluxDB v2): [Grafana_Dashboard/Derived Metrics Block for influxdb-v2.json](Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v2.json)
 - Improved full dashboard (InfluxDB v1 + derived row + query fixes): [Grafana_Dashboard/Health Stats Dashboard for influxdb-v1 - improved.json](Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v1%20-%20improved.json)
+- Improved full dashboard (InfluxDB v2 + derived row + query fixes): [Grafana_Dashboard/Health Stats Dashboard for influxdb-v2 - improved.json](Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v2%20-%20improved.json)
 
 ### Dashboard Compatibility
 
@@ -52,7 +53,7 @@ If you import a v2/Flux JSON into an InfluxQL datasource, panels fail with parsi
 Quick import choice:
 
 - InfluxQL datasource -> `Fitbit Derived Metrics Block (InfluxQL / v1)` or `Fitbit Stats (Improved + Derived) (InfluxQL / v1)`
-- Flux datasource -> `Fitbit Derived Metrics Block (Flux / v2)`
+- Flux datasource -> `Fitbit Derived Metrics Block (Flux / v2)` or `Fitbit Stats (Improved + Derived) (Flux / v2)`
 
 ### Dashboard Clarity Rule
 
@@ -103,9 +104,27 @@ You can enable/disable them with environment flags:
 - `ENABLE_DERIVED_ZSCORES` (default: `false`)
 - `ENABLE_DERIVED_TREND_SIGNALS` (default: `false`)
 - `ENABLE_DERIVED_READINESS_FLAGS` (default: `false`)
+- `ENABLE_DERIVED_AUTO_BACKFILL` (default: `false`)
+- `DERIVED_AUTO_BACKFILL_DAYS` (default: `30`)
+- `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN` (default: `90`)
 
 If enabled, these measurements are written with `Derived ...` prefixes so they are easy to group under a dedicated `Derived Measurements` section in Grafana.
 All written points now also include a `MetricClass` tag (`Direct` or `Derived`) so Grafana panels/variables can filter explicitly by class.
+
+### Optional derived startup auto-backfill
+
+When enabled, the service performs a one-time derived-only recompute at startup before regular collection begins.
+
+- `ENABLE_DERIVED_AUTO_BACKFILL=true`
+- `DERIVED_AUTO_BACKFILL_DAYS=30`
+- `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN=90`
+
+Behavior:
+
+- Reads direct points from InfluxDB for each day in the lookback window.
+- Recomputes only enabled derived measurements and writes them back with `MetricClass='Derived'`.
+- Skips days with insufficient source inputs.
+- Caps processing window with `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN` to avoid heavy startup load.
 
 ## Install with Docker (Recommended)
 
@@ -168,6 +187,9 @@ services:
       - ENABLE_DERIVED_ZSCORES=False # Derived ZScores (28d anomaly scores)
       - ENABLE_DERIVED_TREND_SIGNALS=False # Derived TrendSignals (7d slopes)
       - ENABLE_DERIVED_READINESS_FLAGS=False # Derived ReadinessFlags (alert-friendly booleans)
+      - ENABLE_DERIVED_AUTO_BACKFILL=False # startup derived-only recompute from existing direct points
+      - DERIVED_AUTO_BACKFILL_DAYS=30 # lookback days for startup backfill
+      - DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN=90 # safety cap for startup backfill window
       - INFLUXDB_VERSION=1
       - INFLUXDB_HOST=influxdb
       - INFLUXDB_PORT=8086

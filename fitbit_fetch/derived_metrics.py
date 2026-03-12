@@ -1,6 +1,6 @@
 """Derived metric generation from collected direct records."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 import math
 
@@ -481,7 +481,7 @@ def build_derived_points(
         derived_points.append(
             {
                 "measurement": "Derived PipelineHealth",
-                "time": datetime.utcnow().replace(microsecond=0).isoformat() + "+00:00",
+                "time": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                 "tags": {"Device": devicename, "MetricClass": "Derived"},
                 "fields": {
                     "last_success_epoch": now_epoch,
