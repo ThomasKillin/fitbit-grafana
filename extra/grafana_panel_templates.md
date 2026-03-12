@@ -8,16 +8,37 @@ Use these templates when creating new panels so dashboard intent stays clear:
 Import-ready derived block dashboard JSON:
 
 - [Grafana_Dashboard/Derived Metrics Block for influxdb-v1.json](../Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v1.json)
-- [Grafana_Dashboard/Derived Metrics Block for influxdb-v2.json](../Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v2.json)
+- [Grafana_Dashboard/Derived Metrics Block for influxdb-v2.json](../Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v2.json) (`Flux` datasource required)
 - Improved full dashboard with fixes: [Grafana_Dashboard/Health Stats Dashboard for influxdb-v1 - improved.json](../Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v1%20-%20improved.json)
 - Alert templates for pipeline monitoring: [extra/grafana_alert_templates.md](./grafana_alert_templates.md)
+
+## Compatibility Matrix
+
+- If your Grafana datasource uses InfluxQL / InfluxDB v1:
+  - Use `Derived Metrics Block for influxdb-v1.json`
+  - Use `Health Stats Dashboard for influxdb-v1 - improved.json`
+- If your Grafana datasource uses Flux / InfluxDB v2:
+  - Use `Derived Metrics Block for influxdb-v2.json`
+
+## Common Import Error
+
+If you see this in Query Inspector:
+
+`InfluxDB returned error: error parsing query: found FROM, expected identifier...`
+
+It means Flux query text (starts with `from(bucket: ...)`) was sent to an InfluxQL datasource.
+
+Fix:
+
+1. Import the `influxdb-v1` dashboard JSON for InfluxQL datasources.
+2. Or configure a Flux (InfluxDB v2) datasource and use the `influxdb-v2` JSON.
 
 Quick usage:
 
 1. Grafana -> Dashboards -> New -> Import.
-2. Upload `Derived Metrics Block for influxdb-v1.json`.
-3. Select your InfluxDB datasource for `DS_HEALTH_STATS`.
-4. Import.
+2. Upload the JSON matching your datasource mode (v1/InfluxQL or v2/Flux).
+3. Select your InfluxDB datasource for `DS_HEALTH_STATS` (v1) or `DS_INFLUXDB` (v2).
+4. For v2 dashboards, pick the `bucket` variable after import.
 5. Optional: copy the `Derived Measurements` row panels into your main dashboard.
 
 ---

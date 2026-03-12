@@ -41,6 +41,14 @@ A script to fetch data from Fitbit servers using their API and store the data in
 - Import-ready derived block dashboard (InfluxDB v2): [Grafana_Dashboard/Derived Metrics Block for influxdb-v2.json](Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v2.json)
 - Improved full dashboard (InfluxDB v1 + derived row + query fixes): [Grafana_Dashboard/Health Stats Dashboard for influxdb-v1 - improved.json](Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v1%20-%20improved.json)
 
+### Dashboard Compatibility
+
+- Use `influxdb-v1` JSON files with InfluxQL datasources (InfluxDB v1 mode).
+- Use `influxdb-v2` JSON files with Flux datasources (InfluxDB v2 mode).
+
+If you import a v2/Flux JSON into an InfluxQL datasource, panels fail with parsing errors like:
+`found FROM, expected identifier`.
+
 ### Dashboard Clarity Rule
 
 When adding new panels, separate them into two sections:
