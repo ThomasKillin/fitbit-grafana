@@ -113,3 +113,39 @@ Use your own ingestion profile:
 Recommended severity split:
 - Warning: no updates for `> 30m`
 - Critical: no updates for `> 2h`
+
+---
+
+## Alert 3: Overreaching Risk (v1 InfluxQL)
+
+```sql
+SELECT mean("overreaching_flag")
+FROM "Derived ReadinessFlags"
+WHERE $timeFilter
+  AND "MetricClass"='Derived'
+GROUP BY time(15m) fill(null)
+```
+
+Suggested rule:
+- Time range: `now-6h` to `now`
+- Reduce: `last()`
+- Condition: `A >= 1`
+- Evaluate every: `5m`
+- For: `10m`
+
+## Alert 4: Under-Recovered Risk (v1 InfluxQL)
+
+```sql
+SELECT mean("under_recovered_flag")
+FROM "Derived ReadinessFlags"
+WHERE $timeFilter
+  AND "MetricClass"='Derived'
+GROUP BY time(15m) fill(null)
+```
+
+Suggested rule:
+- Time range: `now-6h` to `now`
+- Reduce: `last()`
+- Condition: `A >= 1`
+- Evaluate every: `5m`
+- For: `10m`

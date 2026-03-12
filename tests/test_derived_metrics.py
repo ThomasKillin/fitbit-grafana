@@ -16,6 +16,10 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=False,
             enable_cardio_fitness=False,
             enable_correlation_signals=False,
+            enable_correlation_matrix=False,
+            enable_zscores=False,
+            enable_trend_signals=False,
+            enable_readiness_flags=False,
             pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
@@ -39,6 +43,10 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=True,
             enable_cardio_fitness=False,
             enable_correlation_signals=False,
+            enable_correlation_matrix=False,
+            enable_zscores=False,
+            enable_trend_signals=False,
+            enable_readiness_flags=False,
             pipeline_previous_success_epoch=None,
         )
         measurements = {point["measurement"] for point in derived}
@@ -57,6 +65,10 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=False,
             enable_cardio_fitness=True,
             enable_correlation_signals=False,
+            enable_correlation_matrix=False,
+            enable_zscores=False,
+            enable_trend_signals=False,
+            enable_readiness_flags=False,
             pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
@@ -87,6 +99,10 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=True,
             enable_cardio_fitness=False,
             enable_correlation_signals=False,
+            enable_correlation_matrix=False,
+            enable_zscores=False,
+            enable_trend_signals=False,
+            enable_readiness_flags=False,
             pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
@@ -116,6 +132,10 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=False,
             enable_cardio_fitness=False,
             enable_correlation_signals=True,
+            enable_correlation_matrix=False,
+            enable_zscores=False,
+            enable_trend_signals=False,
+            enable_readiness_flags=False,
             pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
@@ -139,6 +159,10 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=False,
             enable_cardio_fitness=False,
             enable_correlation_signals=True,
+            enable_correlation_matrix=False,
+            enable_zscores=False,
+            enable_trend_signals=False,
+            enable_readiness_flags=False,
             pipeline_previous_success_epoch=None,
         )
         self.assertEqual(len(derived), 1)
@@ -155,10 +179,54 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_training_load=False,
             enable_cardio_fitness=False,
             enable_correlation_signals=False,
+            enable_correlation_matrix=False,
+            enable_zscores=False,
+            enable_trend_signals=False,
+            enable_readiness_flags=False,
             pipeline_previous_success_epoch=0,
         )
         self.assertEqual(derived[0]["measurement"], "Derived PipelineHealth")
         self.assertGreaterEqual(derived[0]["fields"]["minutes_since_success"], 1.0)
+
+    def test_correlation_matrix_zscores_trends_and_flags(self):
+        end_date = date(2026, 2, 28)
+        points = []
+        for idx in range(0, 28):
+            day = (end_date - timedelta(days=idx)).isoformat()
+            points.extend(
+                [
+                    {"measurement": "RestingHR", "time": f"{day}T00:00:00+00:00", "fields": {"value": 60 - (idx % 5)}},
+                    {"measurement": "HRV", "time": f"{day}T00:00:00+00:00", "fields": {"dailyRmssd": 35 + (idx % 7)}},
+                    {"measurement": "Sleep Summary", "time": f"{day}T00:00:00+00:00", "fields": {"minutesAsleep": 390 + (idx % 20)}},
+                    {"measurement": "Total Steps", "time": f"{day}T00:00:00+00:00", "fields": {"value": 8000 + (idx * 50)}},
+                    {"measurement": "HR zones", "time": f"{day}T00:00:00+00:00", "fields": {"Normal": 10 + (idx % 3), "Fat Burn": 4, "Cardio": 2, "Peak": 1}},
+                ]
+            )
+
+        derived = build_derived_points(
+            points=points,
+            devicename="ChargeX",
+            end_date_str=end_date.isoformat(),
+            enable_pipeline_health=False,
+            enable_recovery_score=True,
+            enable_training_load=True,
+            enable_cardio_fitness=False,
+            enable_correlation_signals=False,
+            enable_correlation_matrix=True,
+            enable_zscores=True,
+            enable_trend_signals=True,
+            enable_readiness_flags=True,
+            pipeline_previous_success_epoch=None,
+        )
+        measurements = {point["measurement"] for point in derived}
+        self.assertIn("Derived CorrelationMatrix", measurements)
+        self.assertIn("Derived ZScores", measurements)
+        self.assertIn("Derived TrendSignals", measurements)
+        self.assertIn("Derived ReadinessFlags", measurements)
+
+        recovery = next(p for p in derived if p["measurement"] == "Derived RecoveryScore")
+        self.assertIn("confidence", recovery["fields"])
+        self.assertIn("missing_inputs_count", recovery["fields"])
 
 
 if __name__ == "__main__":

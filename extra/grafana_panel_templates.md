@@ -91,6 +91,55 @@ WHERE $timeFilter
 GROUP BY time($__interval) fill(null)
 ```
 
+### Derived correlation matrix template
+
+```sql
+SELECT mean("corr_load_vs_recovery_14d") AS "corr_load_vs_recovery_14d",
+       mean("corr_load_vs_recovery_lag1_14d") AS "corr_load_vs_recovery_lag1_14d",
+       mean("corr_load_vs_recovery_lag2_14d") AS "corr_load_vs_recovery_lag2_14d"
+FROM "Derived CorrelationMatrix"
+WHERE $timeFilter
+  AND "MetricClass"='Derived'
+GROUP BY time($__interval) fill(null)
+```
+
+### Derived z-score template
+
+```sql
+SELECT mean("z_rhr") AS "z_rhr",
+       mean("z_hrv") AS "z_hrv",
+       mean("z_recovery_score") AS "z_recovery_score"
+FROM "Derived ZScores"
+WHERE $timeFilter
+  AND "MetricClass"='Derived'
+GROUP BY time($__interval) fill(null)
+```
+
+### Derived trend signals template
+
+```sql
+SELECT mean("slope_7d_rhr") AS "slope_7d_rhr",
+       mean("slope_7d_hrv") AS "slope_7d_hrv",
+       mean("slope_7d_recovery_score") AS "slope_7d_recovery_score"
+FROM "Derived TrendSignals"
+WHERE $timeFilter
+  AND "MetricClass"='Derived'
+GROUP BY time($__interval) fill(null)
+```
+
+### Derived readiness flags template
+
+```sql
+SELECT mean("readiness_score") AS "readiness_score",
+       mean("readiness_confidence") AS "readiness_confidence",
+       mean("overreaching_flag") AS "overreaching_flag",
+       mean("under_recovered_flag") AS "under_recovered_flag"
+FROM "Derived ReadinessFlags"
+WHERE $timeFilter
+  AND "MetricClass"='Derived'
+GROUP BY time($__interval) fill(null)
+```
+
 ---
 
 ## InfluxDB v2 (Flux)
@@ -130,6 +179,10 @@ from(bucket: v.defaultBucket)
 - `[Derived] Load Ratio (load_ratio)`
 - `[Derived] Cardio Fitness (vo2_estimate)`
 - `[Derived] Correlation Signals (rhr_delta, hrv_delta, sleep_minutes_delta, steps_delta)`
+- `[Derived] Correlation Matrix (14d + lagged)`
+- `[Derived] Z-Score Anomalies`
+- `[Derived] Trend Signals (7d slopes)`
+- `[Derived] Readiness Flags`
 - `[Derived] Pipeline Health (record_count_last_run)`
 
 ---

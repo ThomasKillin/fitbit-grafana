@@ -99,6 +99,10 @@ You can enable/disable them with environment flags:
 - `ENABLE_DERIVED_TRAINING_LOAD` (default: `false`)
 - `ENABLE_DERIVED_CARDIO_FITNESS` (default: `false`)
 - `ENABLE_DERIVED_CORRELATION_SIGNALS` (default: `false`)
+- `ENABLE_DERIVED_CORRELATION_MATRIX` (default: `false`)
+- `ENABLE_DERIVED_ZSCORES` (default: `false`)
+- `ENABLE_DERIVED_TREND_SIGNALS` (default: `false`)
+- `ENABLE_DERIVED_READINESS_FLAGS` (default: `false`)
 
 If enabled, these measurements are written with `Derived ...` prefixes so they are easy to group under a dedicated `Derived Measurements` section in Grafana.
 All written points now also include a `MetricClass` tag (`Direct` or `Derived`) so Grafana panels/variables can filter explicitly by class.
@@ -160,6 +164,10 @@ services:
       - ENABLE_DERIVED_TRAINING_LOAD=False # Derived TrainingLoad measurement
       - ENABLE_DERIVED_CARDIO_FITNESS=False # Derived CardioFitness measurement (RHR heuristic)
       - ENABLE_DERIVED_CORRELATION_SIGNALS=False # Derived CorrelationSignals (latest-two-day deltas per signal)
+      - ENABLE_DERIVED_CORRELATION_MATRIX=False # Derived CorrelationMatrix (rolling + lagged correlations)
+      - ENABLE_DERIVED_ZSCORES=False # Derived ZScores (28d anomaly scores)
+      - ENABLE_DERIVED_TREND_SIGNALS=False # Derived TrendSignals (7d slopes)
+      - ENABLE_DERIVED_READINESS_FLAGS=False # Derived ReadinessFlags (alert-friendly booleans)
       - INFLUXDB_VERSION=1
       - INFLUXDB_HOST=influxdb
       - INFLUXDB_PORT=8086

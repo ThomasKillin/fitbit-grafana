@@ -42,6 +42,10 @@ class ConfigTests(unittest.TestCase):
         self.assertFalse(config.enable_derived_training_load)
         self.assertFalse(config.enable_derived_cardio_fitness)
         self.assertFalse(config.enable_derived_correlation_signals)
+        self.assertFalse(config.enable_derived_correlation_matrix)
+        self.assertFalse(config.enable_derived_zscores)
+        self.assertFalse(config.enable_derived_trend_signals)
+        self.assertFalse(config.enable_derived_readiness_flags)
 
     def test_derived_feature_flags_override(self):
         with patch.dict(
@@ -52,6 +56,10 @@ class ConfigTests(unittest.TestCase):
                 "ENABLE_DERIVED_TRAINING_LOAD": "1",
                 "ENABLE_DERIVED_CARDIO_FITNESS": "true",
                 "ENABLE_DERIVED_CORRELATION_SIGNALS": "true",
+                "ENABLE_DERIVED_CORRELATION_MATRIX": "true",
+                "ENABLE_DERIVED_ZSCORES": "true",
+                "ENABLE_DERIVED_TREND_SIGNALS": "true",
+                "ENABLE_DERIVED_READINESS_FLAGS": "true",
             },
             clear=True,
         ):
@@ -61,6 +69,10 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(config.enable_derived_training_load)
         self.assertTrue(config.enable_derived_cardio_fitness)
         self.assertTrue(config.enable_derived_correlation_signals)
+        self.assertTrue(config.enable_derived_correlation_matrix)
+        self.assertTrue(config.enable_derived_zscores)
+        self.assertTrue(config.enable_derived_trend_signals)
+        self.assertTrue(config.enable_derived_readiness_flags)
 
 
 if __name__ == "__main__":

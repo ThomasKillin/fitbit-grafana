@@ -43,6 +43,10 @@ class AppConfig:
     enable_derived_training_load: bool
     enable_derived_cardio_fitness: bool
     enable_derived_correlation_signals: bool
+    enable_derived_correlation_matrix: bool
+    enable_derived_zscores: bool
+    enable_derived_trend_signals: bool
+    enable_derived_readiness_flags: bool
 
 
 def _is_false_env(value: str | None) -> bool:
@@ -100,4 +104,8 @@ def load_config() -> AppConfig:
         enable_derived_training_load=_env_bool("ENABLE_DERIVED_TRAINING_LOAD", False),
         enable_derived_cardio_fitness=_env_bool("ENABLE_DERIVED_CARDIO_FITNESS", False),
         enable_derived_correlation_signals=_env_bool("ENABLE_DERIVED_CORRELATION_SIGNALS", False),
+        enable_derived_correlation_matrix=_env_bool("ENABLE_DERIVED_CORRELATION_MATRIX", False),
+        enable_derived_zscores=_env_bool("ENABLE_DERIVED_ZSCORES", False),
+        enable_derived_trend_signals=_env_bool("ENABLE_DERIVED_TREND_SIGNALS", False),
+        enable_derived_readiness_flags=_env_bool("ENABLE_DERIVED_READINESS_FLAGS", False),
     )

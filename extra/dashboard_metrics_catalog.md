@@ -93,6 +93,10 @@ Recommended naming style for panel titles:
 | Training load | `Derived TrainingLoad` | `daily_load`, `acute_7d`, `chronic_28d`, `load_ratio` | Latest HR zone durations | Implemented (feature-flagged) |
 | Recovery score | `Derived RecoveryScore` | `score`, `sleep_component`, `hrv_component`, `rhr_component`, `strain_component` | Sleep Summary, HRV, RestingHR, HR zones | Implemented (feature-flagged) |
 | Correlation signals | `Derived CorrelationSignals` | `rhr_delta`, `hrv_delta`, `sleep_minutes_delta`, `steps_delta` | Day-over-day differences from direct measurements | Implemented (feature-flagged) |
+| Correlation matrix | `Derived CorrelationMatrix` | rolling and lagged correlation fields | Multi-metric daily series (RHR/HRV/sleep/steps/load/recovery) | Implemented (feature-flagged) |
+| Z-score anomalies | `Derived ZScores` | `z_*` fields | 28-day rolling metric distributions | Implemented (feature-flagged) |
+| Trend signals | `Derived TrendSignals` | `slope_7d_*` fields | 7-day slope of key metrics | Implemented (feature-flagged) |
+| Readiness flags | `Derived ReadinessFlags` | readiness/confidence + boolean flags | RecoveryScore + TrainingLoad context | Implemented (feature-flagged) |
 | Pipeline freshness | `Derived PipelineHealth` | `last_success_epoch`, `minutes_since_success`, `record_count_last_run` | Runtime fetch/write state | Implemented (default on) |
 | Cardio fitness / VO2 trend | `Derived CardioFitness` | `vo2_estimate`, `source`, `confidence` | RestingHR-based heuristic (v1) | Implemented (feature-flagged) |
 
@@ -148,6 +152,7 @@ Recommended naming style for panel titles:
 - What it means:
   - Higher score suggests better recovery state based on sleep, autonomic signal (HRV), resting HR, and recent strain.
   - Lower score suggests accumulated strain and/or weak recovery signals.
+  - `confidence` indicates how complete the current input set is (0-1).
 - How it is useful:
   - Quick morning dashboard check for readiness trend.
   - Context for deciding hard vs easy training day.
@@ -216,6 +221,67 @@ Recommended naming style for panel titles:
 - Caveats:
   - It is a short-window feature, not a trend model.
   - If a signal has fewer than two daily values in the current batch, that field is omitted.
+
+### `Derived CorrelationMatrix`
+
+- What it is: Rolling and lagged Pearson correlations between key metrics over a 14-day window.
+- How it is derived:
+  - Computes correlations for key pairs (for example load vs recovery, sleep vs recovery, RHR vs HRV).
+  - Includes lagged forms (for example load leading recovery by 1-2 days).
+- What it means:
+  - Values near `+1` indicate strong positive association; near `-1` indicate strong inverse association.
+  - Lagged values help reveal delayed effects (training load today vs recovery tomorrow).
+- How it is useful:
+  - Correlation dashboard row for understanding which inputs are driving readiness.
+  - Supports hypothesis testing before setting alerts.
+- Caveats:
+  - Correlation does not imply causation.
+  - Sparse/flat data can suppress fields due to insufficient variance.
+
+### `Derived ZScores`
+
+- What it is: Standardized anomaly scores for latest value vs its 28-day rolling distribution.
+- How it is derived:
+  - For each metric, `z = (latest - mean_28d) / std_28d`.
+- What it means:
+  - Positive z-score = above recent baseline; negative = below baseline.
+  - Magnitude indicates unusualness (for example `|z| >= 2` often considered notable).
+- How it is useful:
+  - Cross-metric comparison despite different units.
+  - Highlight abnormal days for deeper investigation.
+- Caveats:
+  - Needs enough data points and non-zero variance.
+  - Sensitive to outliers in short windows.
+
+### `Derived TrendSignals`
+
+- What it is: 7-day linear slope features for key metrics.
+- How it is derived:
+  - Fits a simple linear slope across available values in a 7-day window.
+- What it means:
+  - Positive slope = rising trend; negative slope = falling trend.
+- How it is useful:
+  - Quick trend direction signals without visual inspection of every panel.
+  - Inputs for alert logic (for example sustained RHR uptrend).
+- Caveats:
+  - Short windows can be noisy.
+  - Missing data reduces reliability.
+
+### `Derived ReadinessFlags`
+
+- What it is: Alert-friendly readiness summary fields and boolean risk flags.
+- How it is derived:
+  - Uses `RecoveryScore` and `TrainingLoad` context.
+  - Emits booleans such as:
+    - `overreaching_flag`
+    - `under_recovered_flag`
+- What it means:
+  - Converts multi-metric context into operational signals for monitoring and alerts.
+- How it is useful:
+  - Directly usable in Grafana alert conditions.
+  - Easier to operationalize than manual threshold combinations in many panels.
+- Caveats:
+  - Threshold logic is heuristic and should be tuned to personal baseline/history.
 
 ---
 
