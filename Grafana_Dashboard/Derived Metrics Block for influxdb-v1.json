@@ -760,7 +760,9 @@
     "tags":  [
                  "fitbit",
                  "derived",
-                 "influxdb-v1"
+                 "influxdb-v1",
+                 "influxql",
+                 "v1-only"
              ],
     "templating":  {
                        "list":  [
@@ -775,7 +777,7 @@
 
                    },
     "timezone":  "browser",
-    "title":  "Fitbit Derived Metrics Block (influxdb-v1)",
+    "title":  "Fitbit Derived Metrics Block (InfluxQL / v1)",
     "uid":  null,
     "version":  1,
     "weekStart":  ""

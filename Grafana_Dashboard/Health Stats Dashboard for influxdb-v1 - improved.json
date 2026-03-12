@@ -7968,7 +7968,9 @@
     "refresh":  "5m",
     "schemaVersion":  41,
     "tags":  [
-
+                 "influxql",
+                 "v1-only",
+                 "improved"
              ],
     "templating":  {
                        "list":  [
@@ -8065,7 +8067,7 @@
 
                    },
     "timezone":  "browser",
-    "title":  "Fitbit Stats (Improved + Derived)",
+    "title":  "Fitbit Stats (Improved + Derived) (InfluxQL / v1)",
     "uid":  null,
     "version":  1,
     "weekStart":  ""

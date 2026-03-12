@@ -507,7 +507,9 @@
     "tags":  [
                  "fitbit",
                  "derived",
-                 "influxdb-v2"
+                 "influxdb-v2",
+                 "flux",
+                 "v2-only"
              ],
     "templating":  {
                        "list":  [
@@ -544,7 +546,7 @@
 
                    },
     "timezone":  "browser",
-    "title":  "Fitbit Derived Metrics Block (influxdb-v2)",
+    "title":  "Fitbit Derived Metrics Block (Flux / v2)",
     "uid":  null,
     "version":  1,
     "weekStart":  ""

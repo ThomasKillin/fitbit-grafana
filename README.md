@@ -49,6 +49,11 @@ A script to fetch data from Fitbit servers using their API and store the data in
 If you import a v2/Flux JSON into an InfluxQL datasource, panels fail with parsing errors like:
 `found FROM, expected identifier`.
 
+Quick import choice:
+
+- InfluxQL datasource -> `Fitbit Derived Metrics Block (InfluxQL / v1)` or `Fitbit Stats (Improved + Derived) (InfluxQL / v1)`
+- Flux datasource -> `Fitbit Derived Metrics Block (Flux / v2)`
+
 ### Dashboard Clarity Rule
 
 When adding new panels, separate them into two sections:
