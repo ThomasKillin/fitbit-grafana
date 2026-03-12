@@ -32,6 +32,7 @@ A script to fetch data from Fitbit servers using their API and store the data in
 - Automated token refresh
 - Historical data backfilling
 - Rate limit aware data collection
+- Ask-the-AI text query CLI for quick natural-language metric summaries
 
 - InfluxDB measurements and schema: [extra/influxdb_schema.md](extra/influxdb_schema.md)
 - Dashboard metric catalog (`Direct` vs `Derived`): [extra/dashboard_metrics_catalog.md](extra/dashboard_metrics_catalog.md)
@@ -125,6 +126,30 @@ Behavior:
 - Recomputes only enabled derived measurements and writes them back with `MetricClass='Derived'`.
 - Skips days with insufficient source inputs.
 - Caps processing window with `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN` to avoid heavy startup load.
+
+### Ask-the-AI text query (Step 1)
+
+You can query metrics in plain English from your Influx data:
+
+```bash
+python -m fitbit_fetch.ask_ai_cli --question "How has my recovery score changed in last 14 days?"
+python -m fitbit_fetch.ask_ai_cli --question "What is my resting heart rate trend over 2 weeks?" --json
+```
+
+Supported metrics in the first version:
+
+- Resting heart rate
+- HRV (daily RMSSD)
+- Daily steps
+- Sleep minutes
+- Derived recovery score
+- Derived training load ratio
+
+Optional LLM-enhanced wording (otherwise local deterministic summary is used):
+
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (default `gpt-4.1-mini`)
+- `OPENAI_BASE_URL` (default `https://api.openai.com/v1`)
 
 ## Install with Docker (Recommended)
 

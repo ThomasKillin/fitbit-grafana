@@ -181,3 +181,83 @@ class InfluxWriter:
                         }
                     )
         return points
+
+    def query_metric_series(
+        self,
+        *,
+        measurement: str,
+        field: str,
+        days: int,
+        metric_class: str | None = None,
+    ) -> list[dict]:
+        """Query daily mean series for one measurement/field pair."""
+        if self.version == "1":
+            return self._query_metric_series_v1(
+                measurement=measurement,
+                field=field,
+                days=days,
+                metric_class=metric_class,
+            )
+        if self.version == "2":
+            return self._query_metric_series_v2(
+                measurement=measurement,
+                field=field,
+                days=days,
+                metric_class=metric_class,
+            )
+        raise InfluxDBClientError("query_metric_series currently supports only InfluxDB v1/v2")
+
+    def _query_metric_series_v1(
+        self,
+        *,
+        measurement: str,
+        field: str,
+        days: int,
+        metric_class: str | None,
+    ) -> list[dict]:
+        where = f"time >= now() - {int(days)}d"
+        if metric_class:
+            where += f" AND \"MetricClass\"='{metric_class}'"
+        query = (
+            f'SELECT mean("{field}") AS value FROM "{measurement}" '
+            f"WHERE {where} GROUP BY time(1d) fill(null)"
+        )
+        result = self._client.query(query)
+        rows = []
+        for point in result.get_points(measurement=measurement):
+            value = point.get("value")
+            if value is None:
+                continue
+            rows.append({"time": point.get("time"), "value": float(value)})
+        return rows
+
+    def _query_metric_series_v2(
+        self,
+        *,
+        measurement: str,
+        field: str,
+        days: int,
+        metric_class: str | None,
+    ) -> list[dict]:
+        metric_filter = ""
+        if metric_class:
+            metric_filter = f'\n  |> filter(fn: (r) => r.MetricClass == "{metric_class}")'
+        query = (
+            f'from(bucket: "{self.bucket}")\n'
+            f"  |> range(start: -{int(days)}d)\n"
+            f'  |> filter(fn: (r) => r._measurement == "{measurement}")\n'
+            f'  |> filter(fn: (r) => r._field == "{field}")'
+            f"{metric_filter}\n"
+            "  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n"
+            "  |> keep(columns: [\"_time\", \"_value\"])"
+        )
+        tables = self._client.query_api().query(org=self.org, query=query)
+        rows = []
+        for table in tables:
+            for record in table.records:
+                value = record.values.get("_value")
+                ts = record.values.get("_time")
+                if value is None or ts is None:
+                    continue
+                rows.append({"time": ts.isoformat(), "value": float(value)})
+        return rows
