@@ -36,6 +36,7 @@ A script to fetch data from Fitbit servers using their API and store the data in
 - InfluxDB measurements and schema: [extra/influxdb_schema.md](extra/influxdb_schema.md)
 - Dashboard metric catalog (`Direct` vs `Derived`): [extra/dashboard_metrics_catalog.md](extra/dashboard_metrics_catalog.md)
 - Grafana panel query templates (`Direct` vs `Derived`): [extra/grafana_panel_templates.md](extra/grafana_panel_templates.md)
+- Grafana alert templates (`Derived PipelineHealth`): [extra/grafana_alert_templates.md](extra/grafana_alert_templates.md)
 - Import-ready derived block dashboard (InfluxDB v1): [Grafana_Dashboard/Derived Metrics Block for influxdb-v1.json](Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v1.json)
 - Import-ready derived block dashboard (InfluxDB v2): [Grafana_Dashboard/Derived Metrics Block for influxdb-v2.json](Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v2.json)
 - Improved full dashboard (InfluxDB v1 + derived row + query fixes): [Grafana_Dashboard/Health Stats Dashboard for influxdb-v1 - improved.json](Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v1%20-%20improved.json)
