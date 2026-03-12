@@ -7303,12 +7303,12 @@
                                                                            "axisLabel":  "",
                                                                            "axisPlacement":  "auto",
                                                                            "drawStyle":  "line",
-                                                                           "fillOpacity":  15,
+                                                                           "fillOpacity":  20,
                                                                            "lineInterpolation":  "smooth",
-                                                                           "lineWidth":  2,
-                                                                           "pointSize":  4,
-                                                                           "showPoints":  "never",
-                                                                           "spanNulls":  false
+                                                                           "lineWidth":  3,
+                                                                           "pointSize":  6,
+                                                                           "showPoints":  "always",
+                                                                           "spanNulls":  true
                                                                        },
                                                             "mappings":  [
 
@@ -7419,12 +7419,12 @@
                                                                            "axisLabel":  "",
                                                                            "axisPlacement":  "auto",
                                                                            "drawStyle":  "line",
-                                                                           "fillOpacity":  10,
+                                                                           "fillOpacity":  20,
                                                                            "lineInterpolation":  "smooth",
-                                                                           "lineWidth":  2,
-                                                                           "pointSize":  4,
-                                                                           "showPoints":  "never",
-                                                                           "spanNulls":  false
+                                                                           "lineWidth":  3,
+                                                                           "pointSize":  6,
+                                                                           "showPoints":  "always",
+                                                                           "spanNulls":  true
                                                                        },
                                                             "mappings":  [
 
@@ -7444,7 +7444,34 @@
                                                             "unit":  "none"
                                                         },
                                            "overrides":  [
-
+                                                             {
+                                                                 "matcher":  {
+                                                                                 "id":  "byName",
+                                                                                 "options":  "load_ratio"
+                                                                             },
+                                                                 "properties":  [
+                                                                                    {
+                                                                                        "id":  "custom.axisPlacement",
+                                                                                        "value":  "right"
+                                                                                    },
+                                                                                    {
+                                                                                        "id":  "custom.axisLabel",
+                                                                                        "value":  "Load Ratio"
+                                                                                    },
+                                                                                    {
+                                                                                        "id":  "unit",
+                                                                                        "value":  "none"
+                                                                                    },
+                                                                                    {
+                                                                                        "id":  "custom.lineWidth",
+                                                                                        "value":  4
+                                                                                    },
+                                                                                    {
+                                                                                        "id":  "custom.pointSize",
+                                                                                        "value":  7
+                                                                                    }
+                                                                                ]
+                                                             }
                                                          ]
                                        },
                        "gridPos":  {
@@ -7583,12 +7610,12 @@
                                                                            "axisLabel":  "",
                                                                            "axisPlacement":  "auto",
                                                                            "drawStyle":  "line",
-                                                                           "fillOpacity":  15,
+                                                                           "fillOpacity":  20,
                                                                            "lineInterpolation":  "smooth",
-                                                                           "lineWidth":  2,
-                                                                           "pointSize":  4,
-                                                                           "showPoints":  "never",
-                                                                           "spanNulls":  false
+                                                                           "lineWidth":  3,
+                                                                           "pointSize":  6,
+                                                                           "showPoints":  "always",
+                                                                           "spanNulls":  true
                                                                        },
                                                             "mappings":  [
 
@@ -7699,12 +7726,12 @@
                                                                            "axisLabel":  "",
                                                                            "axisPlacement":  "auto",
                                                                            "drawStyle":  "line",
-                                                                           "fillOpacity":  10,
+                                                                           "fillOpacity":  20,
                                                                            "lineInterpolation":  "smooth",
-                                                                           "lineWidth":  2,
-                                                                           "pointSize":  4,
-                                                                           "showPoints":  "never",
-                                                                           "spanNulls":  false
+                                                                           "lineWidth":  3,
+                                                                           "pointSize":  6,
+                                                                           "showPoints":  "always",
+                                                                           "spanNulls":  true
                                                                        },
                                                             "mappings":  [
 
@@ -7724,7 +7751,30 @@
                                                             "unit":  "none"
                                                         },
                                            "overrides":  [
-
+                                                             {
+                                                                 "matcher":  {
+                                                                                 "id":  "byName",
+                                                                                 "options":  "steps_delta"
+                                                                             },
+                                                                 "properties":  [
+                                                                                    {
+                                                                                        "id":  "custom.axisPlacement",
+                                                                                        "value":  "right"
+                                                                                    },
+                                                                                    {
+                                                                                        "id":  "custom.axisLabel",
+                                                                                        "value":  "Steps Delta"
+                                                                                    },
+                                                                                    {
+                                                                                        "id":  "custom.lineWidth",
+                                                                                        "value":  4
+                                                                                    },
+                                                                                    {
+                                                                                        "id":  "custom.pointSize",
+                                                                                        "value":  7
+                                                                                    }
+                                                                                ]
+                                                             }
                                                          ]
                                        },
                        "gridPos":  {
@@ -7817,10 +7867,10 @@
                                                                            "drawStyle":  "line",
                                                                            "fillOpacity":  20,
                                                                            "lineInterpolation":  "smooth",
-                                                                           "lineWidth":  2,
-                                                                           "pointSize":  4,
-                                                                           "showPoints":  "never",
-                                                                           "spanNulls":  false
+                                                                           "lineWidth":  3,
+                                                                           "pointSize":  6,
+                                                                           "showPoints":  "always",
+                                                                           "spanNulls":  true
                                                                        },
                                                             "mappings":  [
 
