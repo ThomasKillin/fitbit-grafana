@@ -96,12 +96,29 @@ class InfluxWriter:
             raise InfluxDBClientError("No matching version found. Supported values are 1 and 2 and 3")
 
     def fetch_direct_points_for_day(self, day_str: str, measurements: list[str]) -> list[dict]:
-        """Fetch direct points for a UTC day window for selected measurements."""
+        """Fetch direct points for a single UTC day window."""
+        return self.fetch_direct_points_for_range(
+            start_day_str=day_str,
+            end_day_str=day_str,
+            measurements=measurements,
+        )
+
+    def fetch_direct_points_for_range(
+        self,
+        *,
+        start_day_str: str,
+        end_day_str: str,
+        measurements: list[str],
+    ) -> list[dict]:
+        """Fetch direct points for an inclusive UTC date range for selected measurements."""
         if not measurements:
             return []
 
-        day_start = datetime.strptime(day_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        day_end = day_start + timedelta(days=1)
+        day_start = datetime.strptime(start_day_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        end_day = datetime.strptime(end_day_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        if end_day < day_start:
+            return []
+        day_end = end_day + timedelta(days=1)
         start_iso = day_start.isoformat().replace("+00:00", "Z")
         end_iso = day_end.isoformat().replace("+00:00", "Z")
 

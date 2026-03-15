@@ -12,6 +12,7 @@ DERIVED_BACKFILL_DIRECT_MEASUREMENTS = [
     "RestingHR",
     "Total Steps",
 ]
+DERIVED_BACKFILL_CONTEXT_DAYS = 35
 
 
 def compute_backfill_dates(*, end_date_str: str, requested_days: int, max_days_per_run: int) -> list[str]:
@@ -85,7 +86,13 @@ def run_derived_startup_auto_backfill(
     written = 0
 
     for day_str in date_list:
-        direct_points = influx_writer.fetch_direct_points_for_day(day_str, DERIVED_BACKFILL_DIRECT_MEASUREMENTS)
+        day_date = datetime.strptime(day_str, "%Y-%m-%d").date()
+        context_start = (day_date - timedelta(days=DERIVED_BACKFILL_CONTEXT_DAYS - 1)).isoformat()
+        direct_points = influx_writer.fetch_direct_points_for_range(
+            start_day_str=context_start,
+            end_day_str=day_str,
+            measurements=DERIVED_BACKFILL_DIRECT_MEASUREMENTS,
+        )
         if not direct_points:
             skipped += 1
             logger.debug("Derived auto-backfill skipped %s (no direct points)", day_str)

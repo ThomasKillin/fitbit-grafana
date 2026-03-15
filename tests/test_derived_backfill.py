@@ -15,14 +15,14 @@ class _FakeLogger:
 
 
 class _FakeInfluxWriter:
-    def __init__(self, points_by_day):
-        self.points_by_day = points_by_day
+    def __init__(self, points_by_end_day):
+        self.points_by_end_day = points_by_end_day
         self.write_calls = []
         self.fetch_calls = []
 
-    def fetch_direct_points_for_day(self, day_str, _measurements):
-        self.fetch_calls.append(day_str)
-        return self.points_by_day.get(day_str, [])
+    def fetch_direct_points_for_range(self, *, start_day_str, end_day_str, measurements):
+        self.fetch_calls.append((start_day_str, end_day_str, tuple(measurements)))
+        return self.points_by_end_day.get(end_day_str, [])
 
     def write_points(self, points):
         self.write_calls.append(points)
@@ -41,7 +41,7 @@ class DerivedBackfillTests(unittest.TestCase):
 
     def test_run_backfill_skips_when_disabled(self):
         logger = _FakeLogger()
-        writer = _FakeInfluxWriter(points_by_day={})
+        writer = _FakeInfluxWriter(points_by_end_day={})
         run_derived_startup_auto_backfill(
             enabled=False,
             influx_writer=writer,
@@ -66,7 +66,7 @@ class DerivedBackfillTests(unittest.TestCase):
     def test_run_backfill_processes_days_and_writes_derived_points(self):
         logger = _FakeLogger()
         writer = _FakeInfluxWriter(
-            points_by_day={
+            points_by_end_day={
                 "2026-03-09": [
                     {"measurement": "Sleep Summary", "time": "2026-03-09T00:00:00+00:00", "fields": {"minutesAsleep": 410}},
                     {"measurement": "HRV", "time": "2026-03-09T00:00:00+00:00", "fields": {"dailyRmssd": 42}},
@@ -95,7 +95,11 @@ class DerivedBackfillTests(unittest.TestCase):
             enable_readiness_flags=False,
             sleep_fn=lambda seconds: sleeps.append(seconds),
         )
-        self.assertEqual(writer.fetch_calls, ["2026-03-09", "2026-03-10"])
+        self.assertEqual(len(writer.fetch_calls), 2)
+        self.assertEqual(writer.fetch_calls[0][0], "2026-02-03")
+        self.assertEqual(writer.fetch_calls[0][1], "2026-03-09")
+        self.assertEqual(writer.fetch_calls[1][0], "2026-02-04")
+        self.assertEqual(writer.fetch_calls[1][1], "2026-03-10")
         self.assertEqual(len(writer.write_calls), 1)
         measurements = {point["measurement"] for point in writer.write_calls[0]}
         self.assertIn("Derived RecoveryScore", measurements)
