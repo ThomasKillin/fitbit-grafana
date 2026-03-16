@@ -4706,7 +4706,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -4754,7 +4754,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived RecoveryScore\")\n  |> filter(fn: (r) => r._field == \"score\" or r._field == \"confidence\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> pivot(rowKey:[\"_time\"], columnKey:[\"_field\"], valueColumn:\"_value\")\n  |> filter(fn: (r) => r.confidence >= 0.75)\n  |> map(fn: (r) => ({_time: r._time, _field: \"score\", _value: r.score}))\n  |> yield(name: \"score\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived RecoveryScore\")\n  |> filter(fn: (r) => r._field == \"score\" or r._field == \"confidence\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> pivot(rowKey:[\"_time\"], columnKey:[\"_field\"], valueColumn:\"_value\")\n  |> filter(fn: (r) => r.confidence >= 0.75)\n  |> map(fn: (r) => ({_time: r._time, _field: \"score\", _value: r.score}))\n  |> yield(name: \"score\")",
           "refId": "A"
         }
       ],
@@ -4779,7 +4779,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -4852,7 +4852,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived TrainingLoad\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"daily_load\" or r._field == \"acute_7d\" or r._field == \"chronic_28d\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"load\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived TrainingLoad\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"daily_load\" or r._field == \"acute_7d\" or r._field == \"chronic_28d\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"load\")",
           "refId": "A"
         },
         {
@@ -4860,7 +4860,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived TrainingLoad\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"load_ratio\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"ratio\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived TrainingLoad\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"load_ratio\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"ratio\")",
           "refId": "B"
         }
       ],
@@ -4885,7 +4885,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -4933,7 +4933,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived CardioFitness\")\n  |> filter(fn: (r) => r._field == \"vo2_estimate\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"vo2\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived CardioFitness\")\n  |> filter(fn: (r) => r._field == \"vo2_estimate\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"vo2\")",
           "refId": "A"
         }
       ],
@@ -4958,7 +4958,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -5023,7 +5023,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived CorrelationSignals\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"rhr_delta\" or r._field == \"hrv_delta\" or r._field == \"sleep_minutes_delta\" or r._field == \"steps_delta\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"corr\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived CorrelationSignals\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"rhr_delta\" or r._field == \"hrv_delta\" or r._field == \"sleep_minutes_delta\" or r._field == \"steps_delta\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"corr\")",
           "refId": "A"
         }
       ],
@@ -5048,7 +5048,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -5121,7 +5121,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived PipelineHealth\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"record_count_last_run\" or r._field == \"minutes_since_success\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"pipeline\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived PipelineHealth\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"record_count_last_run\" or r._field == \"minutes_since_success\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"pipeline\")",
           "refId": "A"
         }
       ],
@@ -5146,7 +5146,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -5194,7 +5194,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived CorrelationMatrix\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"corr_rhr_vs_hrv_14d\" or r._field == \"corr_sleep_vs_recovery_14d\" or r._field == \"corr_steps_vs_recovery_14d\" or r._field == \"corr_load_vs_recovery_14d\" or r._field == \"corr_load_vs_recovery_lag1_14d\" or r._field == \"corr_load_vs_recovery_lag2_14d\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"corr_matrix\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived CorrelationMatrix\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"corr_rhr_vs_hrv_14d\" or r._field == \"corr_sleep_vs_recovery_14d\" or r._field == \"corr_steps_vs_recovery_14d\" or r._field == \"corr_load_vs_recovery_14d\" or r._field == \"corr_load_vs_recovery_lag1_14d\" or r._field == \"corr_load_vs_recovery_lag2_14d\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"corr_matrix\")",
           "refId": "A"
         }
       ],
@@ -5219,7 +5219,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -5267,7 +5267,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived ZScores\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"z_rhr\" or r._field == \"z_hrv\" or r._field == \"z_sleep_minutes\" or r._field == \"z_steps\" or r._field == \"z_training_load\" or r._field == \"z_recovery_score\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"zscores\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived ZScores\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"z_rhr\" or r._field == \"z_hrv\" or r._field == \"z_sleep_minutes\" or r._field == \"z_steps\" or r._field == \"z_training_load\" or r._field == \"z_recovery_score\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"zscores\")",
           "refId": "A"
         }
       ],
@@ -5292,7 +5292,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -5340,7 +5340,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived TrendSignals\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"slope_7d_rhr\" or r._field == \"slope_7d_hrv\" or r._field == \"slope_7d_sleep_minutes\" or r._field == \"slope_7d_recovery_score\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"trends_small\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived TrendSignals\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"slope_7d_rhr\" or r._field == \"slope_7d_hrv\" or r._field == \"slope_7d_sleep_minutes\" or r._field == \"slope_7d_recovery_score\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"trends_small\")",
           "refId": "A"
         }
       ],
@@ -5365,7 +5365,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -5413,7 +5413,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived TrendSignals\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"slope_7d_steps\" or r._field == \"slope_7d_training_load\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"trends_large\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived TrendSignals\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"slope_7d_steps\" or r._field == \"slope_7d_training_load\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"trends_large\")",
           "refId": "A"
         }
       ],
@@ -5438,7 +5438,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -5486,7 +5486,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "base = from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived ReadinessFlags\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"readiness_score\" or r._field == \"readiness_confidence\" or r._field == \"overreaching_flag\" or r._field == \"under_recovered_flag\" or r._field == \"load_ratio\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> pivot(rowKey:[\"_time\"], columnKey:[\"_field\"], valueColumn:\"_value\")\n  |> filter(fn: (r) => r.readiness_confidence >= 0.75)\n\nscore = base |> map(fn: (r) => ({_time: r._time, _field: \"readiness_score\", _value: r.readiness_score}))\nconf = base |> map(fn: (r) => ({_time: r._time, _field: \"readiness_confidence\", _value: r.readiness_confidence}))\nover = base |> map(fn: (r) => ({_time: r._time, _field: \"overreaching_flag\", _value: r.overreaching_flag}))\nunder = base |> map(fn: (r) => ({_time: r._time, _field: \"under_recovered_flag\", _value: r.under_recovered_flag}))\nratio = base |> map(fn: (r) => ({_time: r._time, _field: \"load_ratio\", _value: r.load_ratio}))\n\nunion(tables: [score, conf, over, under, ratio])\n  |> yield(name: \"readiness\")",
+          "query": "base = from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived ReadinessFlags\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> filter(fn: (r) => r._field == \"readiness_score\" or r._field == \"readiness_confidence\" or r._field == \"overreaching_flag\" or r._field == \"under_recovered_flag\" or r._field == \"load_ratio\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> pivot(rowKey:[\"_time\"], columnKey:[\"_field\"], valueColumn:\"_value\")\n  |> filter(fn: (r) => r.readiness_confidence >= 0.75)\n\nscore = base |> map(fn: (r) => ({_time: r._time, _field: \"readiness_score\", _value: r.readiness_score}))\nconf = base |> map(fn: (r) => ({_time: r._time, _field: \"readiness_confidence\", _value: r.readiness_confidence}))\nover = base |> map(fn: (r) => ({_time: r._time, _field: \"overreaching_flag\", _value: r.overreaching_flag}))\nunder = base |> map(fn: (r) => ({_time: r._time, _field: \"under_recovered_flag\", _value: r.under_recovered_flag}))\nratio = base |> map(fn: (r) => ({_time: r._time, _field: \"load_ratio\", _value: r.load_ratio}))\n\nunion(tables: [score, conf, over, under, ratio])\n  |> yield(name: \"readiness\")",
           "refId": "A"
         }
       ],
@@ -5511,7 +5511,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 5,
             "showPoints": "always",
@@ -5559,7 +5559,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived RecoveryScore\")\n  |> filter(fn: (r) => r._field == \"missing_inputs_count\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"missing\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"Derived RecoveryScore\")\n  |> filter(fn: (r) => r._field == \"missing_inputs_count\")\n  |> filter(fn: (r) => r.MetricClass == \"Derived\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> yield(name: \"missing\")",
           "refId": "A"
         }
       ],

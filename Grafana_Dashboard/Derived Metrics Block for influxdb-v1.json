@@ -87,7 +87,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -137,7 +137,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -152,7 +152,7 @@
           "measurement": "Derived RecoveryScore",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"score\") AS \"score\" FROM \"Derived RecoveryScore\" WHERE $timeFilter AND \"MetricClass\"='Derived' AND \"confidence\" >= 0.75 GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"score\") AS \"score\" FROM \"Derived RecoveryScore\" WHERE $timeFilter AND \"MetricClass\"='Derived' AND \"confidence\" >= 0.75 GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -195,7 +195,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -270,7 +270,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -285,7 +285,7 @@
           "measurement": "Derived TrainingLoad",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"daily_load\") AS \"daily_load\", mean(\"acute_7d\") AS \"acute_7d\", mean(\"chronic_28d\") AS \"chronic_28d\" FROM \"Derived TrainingLoad\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"daily_load\") AS \"daily_load\", mean(\"acute_7d\") AS \"acute_7d\", mean(\"chronic_28d\") AS \"chronic_28d\" FROM \"Derived TrainingLoad\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -314,7 +314,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -329,7 +329,7 @@
           "measurement": "Derived TrainingLoad",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"load_ratio\") AS \"load_ratio\" FROM \"Derived TrainingLoad\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"load_ratio\") AS \"load_ratio\" FROM \"Derived TrainingLoad\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "B",
@@ -372,7 +372,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -422,7 +422,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -437,7 +437,7 @@
           "measurement": "Derived CardioFitness",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"vo2_estimate\") AS \"vo2_estimate\" FROM \"Derived CardioFitness\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"vo2_estimate\") AS \"vo2_estimate\" FROM \"Derived CardioFitness\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -480,7 +480,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -555,7 +555,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -570,7 +570,7 @@
           "measurement": "Derived CorrelationSignals",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"rhr_delta\") AS \"rhr_delta\", mean(\"hrv_delta\") AS \"hrv_delta\", mean(\"sleep_minutes_delta\") AS \"sleep_minutes_delta\", mean(\"steps_delta\") AS \"steps_delta\" FROM \"Derived CorrelationSignals\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"rhr_delta\") AS \"rhr_delta\", mean(\"hrv_delta\") AS \"hrv_delta\", mean(\"sleep_minutes_delta\") AS \"sleep_minutes_delta\", mean(\"steps_delta\") AS \"steps_delta\" FROM \"Derived CorrelationSignals\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -613,7 +613,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -688,7 +688,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -703,7 +703,7 @@
           "measurement": "Derived PipelineHealth",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"record_count_last_run\") AS \"record_count_last_run\", mean(\"minutes_since_success\") AS \"minutes_since_success\" FROM \"Derived PipelineHealth\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"record_count_last_run\") AS \"record_count_last_run\", mean(\"minutes_since_success\") AS \"minutes_since_success\" FROM \"Derived PipelineHealth\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -746,7 +746,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -796,7 +796,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -811,7 +811,7 @@
           "measurement": "Derived CorrelationMatrix",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"corr_rhr_vs_hrv_14d\") AS \"corr_rhr_vs_hrv_14d\", mean(\"corr_sleep_vs_recovery_14d\") AS \"corr_sleep_vs_recovery_14d\", mean(\"corr_steps_vs_recovery_14d\") AS \"corr_steps_vs_recovery_14d\", mean(\"corr_load_vs_recovery_14d\") AS \"corr_load_vs_recovery_14d\", mean(\"corr_load_vs_recovery_lag1_14d\") AS \"corr_load_vs_recovery_lag1_14d\", mean(\"corr_load_vs_recovery_lag2_14d\") AS \"corr_load_vs_recovery_lag2_14d\" FROM \"Derived CorrelationMatrix\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"corr_rhr_vs_hrv_14d\") AS \"corr_rhr_vs_hrv_14d\", mean(\"corr_sleep_vs_recovery_14d\") AS \"corr_sleep_vs_recovery_14d\", mean(\"corr_steps_vs_recovery_14d\") AS \"corr_steps_vs_recovery_14d\", mean(\"corr_load_vs_recovery_14d\") AS \"corr_load_vs_recovery_14d\", mean(\"corr_load_vs_recovery_lag1_14d\") AS \"corr_load_vs_recovery_lag1_14d\", mean(\"corr_load_vs_recovery_lag2_14d\") AS \"corr_load_vs_recovery_lag2_14d\" FROM \"Derived CorrelationMatrix\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -854,7 +854,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -904,7 +904,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -919,7 +919,7 @@
           "measurement": "Derived ZScores",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"z_rhr\") AS \"z_rhr\", mean(\"z_hrv\") AS \"z_hrv\", mean(\"z_sleep_minutes\") AS \"z_sleep_minutes\", mean(\"z_steps\") AS \"z_steps\", mean(\"z_training_load\") AS \"z_training_load\", mean(\"z_recovery_score\") AS \"z_recovery_score\" FROM \"Derived ZScores\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"z_rhr\") AS \"z_rhr\", mean(\"z_hrv\") AS \"z_hrv\", mean(\"z_sleep_minutes\") AS \"z_sleep_minutes\", mean(\"z_steps\") AS \"z_steps\", mean(\"z_training_load\") AS \"z_training_load\", mean(\"z_recovery_score\") AS \"z_recovery_score\" FROM \"Derived ZScores\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -962,7 +962,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -1012,7 +1012,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -1027,7 +1027,7 @@
           "measurement": "Derived TrendSignals",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"slope_7d_rhr\") AS \"slope_7d_rhr\", mean(\"slope_7d_hrv\") AS \"slope_7d_hrv\", mean(\"slope_7d_sleep_minutes\") AS \"slope_7d_sleep_minutes\", mean(\"slope_7d_recovery_score\") AS \"slope_7d_recovery_score\" FROM \"Derived TrendSignals\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"slope_7d_rhr\") AS \"slope_7d_rhr\", mean(\"slope_7d_hrv\") AS \"slope_7d_hrv\", mean(\"slope_7d_sleep_minutes\") AS \"slope_7d_sleep_minutes\", mean(\"slope_7d_recovery_score\") AS \"slope_7d_recovery_score\" FROM \"Derived TrendSignals\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -1070,7 +1070,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -1120,7 +1120,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -1135,7 +1135,7 @@
           "measurement": "Derived TrendSignals",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"slope_7d_steps\") AS \"slope_7d_steps\", mean(\"slope_7d_training_load\") AS \"slope_7d_training_load\" FROM \"Derived TrendSignals\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"slope_7d_steps\") AS \"slope_7d_steps\", mean(\"slope_7d_training_load\") AS \"slope_7d_training_load\" FROM \"Derived TrendSignals\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -1178,7 +1178,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 6,
             "showPoints": "always",
@@ -1228,7 +1228,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -1243,7 +1243,7 @@
           "measurement": "Derived ReadinessFlags",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"readiness_score\") AS \"readiness_score\", mean(\"readiness_confidence\") AS \"readiness_confidence\", mean(\"overreaching_flag\") AS \"overreaching_flag\", mean(\"under_recovered_flag\") AS \"under_recovered_flag\", mean(\"load_ratio\") AS \"load_ratio\" FROM \"Derived ReadinessFlags\" WHERE $timeFilter AND \"MetricClass\"='Derived' AND \"readiness_confidence\" >= 0.75 GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"readiness_score\") AS \"readiness_score\", mean(\"readiness_confidence\") AS \"readiness_confidence\", mean(\"overreaching_flag\") AS \"overreaching_flag\", mean(\"under_recovered_flag\") AS \"under_recovered_flag\", mean(\"load_ratio\") AS \"load_ratio\" FROM \"Derived ReadinessFlags\" WHERE $timeFilter AND \"MetricClass\"='Derived' AND \"readiness_confidence\" >= 0.75 GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -1286,7 +1286,7 @@
             "axisPlacement": "auto",
             "drawStyle": "line",
             "fillOpacity": 20,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 3,
             "pointSize": 5,
             "showPoints": "always",
@@ -1336,7 +1336,7 @@
           "groupBy": [
             {
               "params": [
-                "$__interval"
+                "1d"
               ],
               "type": "time"
             },
@@ -1351,7 +1351,7 @@
           "measurement": "Derived RecoveryScore",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"missing_inputs_count\") AS \"missing_inputs_count\" FROM \"Derived RecoveryScore\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"missing_inputs_count\") AS \"missing_inputs_count\" FROM \"Derived RecoveryScore\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time(1d) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
