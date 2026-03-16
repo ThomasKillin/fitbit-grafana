@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch, MagicMock
 
 from fitbit_fetch.ask_ai import answer_question, infer_target, infer_window_days, summarize_series
 
@@ -70,6 +71,34 @@ class AskAiTests(unittest.TestCase):
         )
         self.assertFalse(out["ok"])
         self.assertIn("Could not infer a metric", out["error"])
+
+    @patch("fitbit_fetch.ask_ai.requests.post")
+    def test_answer_question_ollama_provider(self, post_mock):
+        writer = _FakeInfluxWriter(
+            rows=[
+                {"time": "2026-03-01T00:00:00+00:00", "value": 57.0},
+                {"time": "2026-03-02T00:00:00+00:00", "value": 55.0},
+            ]
+        )
+        fake_response = MagicMock()
+        fake_response.json.return_value = {"response": "Local model summary"}
+        fake_response.raise_for_status.return_value = None
+        post_mock.return_value = fake_response
+
+        out = answer_question(
+            question="How has my resting heart rate changed in last 7 days?",
+            influx_writer=writer,
+            ai_provider="ollama",
+            openai_api_key=None,
+            ollama_model="llama3.1:8b",
+            ollama_base_url="http://localhost:11434",
+        )
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["answer"], "Local model summary")
+        self.assertEqual(out["ai_provider"], "ollama")
+        post_mock.assert_called_once()
+        called_url = post_mock.call_args.args[0]
+        self.assertEqual(called_url, "http://localhost:11434/api/generate")
 
 
 if __name__ == "__main__":

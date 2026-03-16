@@ -140,27 +140,63 @@ def maybe_openai_rewrite(
         f"Question: {question}\n"
         f"Stats: {summary_payload}\n"
     )
-    response = requests.post(
-        f"{base_url.rstrip('/')}/chat/completions",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": "Use only provided stats. Be concise."},
-                {"role": "user", "content": prompt},
-            ],
-            "temperature": 0.2,
-        },
-        timeout=timeout_seconds,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    choices = payload.get("choices") or []
-    if not choices:
+    try:
+        response = requests.post(
+            f"{base_url.rstrip('/')}/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": "Use only provided stats. Be concise."},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.2,
+            },
+            timeout=timeout_seconds,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        choices = payload.get("choices") or []
+        if not choices:
+            return None
+        message = choices[0].get("message", {})
+        content = message.get("content")
+        return content.strip() if isinstance(content, str) else None
+    except requests.RequestException:
         return None
-    message = choices[0].get("message", {})
-    content = message.get("content")
-    return content.strip() if isinstance(content, str) else None
+
+
+def maybe_ollama_rewrite(
+    *,
+    question: str,
+    summary_payload: dict,
+    model: str = "llama3.1:8b",
+    base_url: str = "http://localhost:11434",
+    timeout_seconds: int = 30,
+) -> str | None:
+    prompt = (
+        "You are a health dashboard analyst. Answer using only provided stats. "
+        "Do not add medical advice. Keep under 120 words.\n\n"
+        f"Question: {question}\n"
+        f"Stats: {summary_payload}\n"
+    )
+    try:
+        response = requests.post(
+            f"{base_url.rstrip('/')}/api/generate",
+            headers={"Content-Type": "application/json"},
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+            },
+            timeout=timeout_seconds,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        content = payload.get("response")
+        return content.strip() if isinstance(content, str) else None
+    except requests.RequestException:
+        return None
 
 
 def answer_question(
@@ -168,9 +204,12 @@ def answer_question(
     question: str,
     influx_writer,
     default_window_days: int = 14,
+    ai_provider: str = "auto",
     openai_api_key: str | None = None,
     openai_model: str = "gpt-4.1-mini",
     openai_base_url: str = "https://api.openai.com/v1",
+    ollama_model: str = "llama3.1:8b",
+    ollama_base_url: str = "http://localhost:11434",
 ) -> dict:
     target = infer_target(question)
     if target is None:
@@ -191,13 +230,40 @@ def answer_question(
         metric_class=target.metric_class,
     )
     summary = summarize_series(values=series, label=target.label, unit=target.unit, days=days)
-    ai_text = maybe_openai_rewrite(
-        question=question,
-        summary_payload=summary,
-        api_key=openai_api_key,
-        model=openai_model,
-        base_url=openai_base_url,
-    )
+    provider = (ai_provider or "auto").strip().lower()
+    ai_text = None
+    if provider == "openai":
+        ai_text = maybe_openai_rewrite(
+            question=question,
+            summary_payload=summary,
+            api_key=openai_api_key,
+            model=openai_model,
+            base_url=openai_base_url,
+        )
+    elif provider == "ollama":
+        ai_text = maybe_ollama_rewrite(
+            question=question,
+            summary_payload=summary,
+            model=ollama_model,
+            base_url=ollama_base_url,
+        )
+    else:
+        # auto mode: prefer OpenAI when key exists, fallback to local Ollama.
+        if openai_api_key:
+            ai_text = maybe_openai_rewrite(
+                question=question,
+                summary_payload=summary,
+                api_key=openai_api_key,
+                model=openai_model,
+                base_url=openai_base_url,
+            )
+        if ai_text is None:
+            ai_text = maybe_ollama_rewrite(
+                question=question,
+                summary_payload=summary,
+                model=ollama_model,
+                base_url=ollama_base_url,
+            )
     return {
         "ok": True,
         "question": question,
@@ -206,6 +272,7 @@ def answer_question(
         "field": target.field,
         "metric_class": target.metric_class,
         "days": days,
+        "ai_provider": provider,
         "summary": summary,
         "answer": ai_text or summary["summary"],
     }

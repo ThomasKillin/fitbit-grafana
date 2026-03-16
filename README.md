@@ -151,6 +151,19 @@ Optional LLM-enhanced wording (otherwise local deterministic summary is used):
 - `OPENAI_MODEL` (default `gpt-4.1-mini`)
 - `OPENAI_BASE_URL` (default `https://api.openai.com/v1`)
 
+Provider selection:
+
+- `AI_PROVIDER=auto|openai|ollama` (default `auto`)
+  - `auto`: uses OpenAI when `OPENAI_API_KEY` exists, otherwise tries Ollama, then falls back to deterministic local summary.
+
+Local Ollama (no API key):
+
+- Install Ollama and pull a model, for example: `ollama pull llama3.1:8b`
+- Set:
+  - `AI_PROVIDER=ollama`
+  - `OLLAMA_MODEL=llama3.1:8b`
+  - `OLLAMA_URL=http://localhost:11434`
+
 ## Install with Docker (Recommended)
 
 1. Follow this [guide](https://dev.fitbit.com/build/reference/web-api/developer-guide/getting-started/) to create an application. ❗ **The Fitbit `Oauth 2.0 Application Type` selection must be `personal` for intraday data access** ❗- Otherwise you might encounter `KeyError: 'activities-heart-intraday'` when fetching intraday Heart rate or steps data.

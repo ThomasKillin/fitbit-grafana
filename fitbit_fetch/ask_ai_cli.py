@@ -45,9 +45,12 @@ def main() -> int:
             question=args.question,
             influx_writer=influx_writer,
             default_window_days=max(1, args.window_days),
+            ai_provider=os.getenv("AI_PROVIDER", "auto"),
             openai_api_key=os.getenv("OPENAI_API_KEY"),
             openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
             openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            ollama_model=os.getenv("OLLAMA_MODEL", "llama3.1:8b"),
+            ollama_base_url=os.getenv("OLLAMA_URL", "http://localhost:11434"),
         )
     except Exception as err:
         print(f"Ask AI query failed: {err}")
