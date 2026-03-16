@@ -1,12 +1,45 @@
 """InfluxDB initialization and write wrapper."""
 
 from datetime import datetime, timedelta, timezone
+import os
+import sys
 
-from influxdb import InfluxDBClient
-from influxdb.exceptions import InfluxDBClientError
-from influxdb_client import InfluxDBClient as InfluxDBClient2
-from influxdb_client.client.write_api import SYNCHRONOUS
-from influxdb_client_3 import InfluxDBClient3, InfluxDBError
+
+class InfluxWriterError(Exception):
+    """Local wrapper error for optional InfluxDB client imports."""
+
+
+def _safe_import_influxdb_v1():
+    try:
+        from influxdb import InfluxDBClient as _InfluxDBClient
+        from influxdb.exceptions import InfluxDBClientError as _InfluxDBClientError
+        return _InfluxDBClient, _InfluxDBClientError
+    except Exception:
+        # Avoid local repo/data folder shadowing (e.g., ./influxdb) when importing the package.
+        original_sys_path = list(sys.path)
+        try:
+            pruned = []
+            for path in original_sys_path:
+                local_influx_path = os.path.join(path, "influxdb")
+                if os.path.isdir(local_influx_path) and not os.path.isfile(os.path.join(local_influx_path, "__init__.py")):
+                    continue
+                pruned.append(path)
+            sys.path = pruned
+            # Clear potentially shadowed namespace package from the first failed import.
+            sys.modules.pop("influxdb", None)
+            from influxdb import InfluxDBClient as _InfluxDBClient
+            from influxdb.exceptions import InfluxDBClientError as _InfluxDBClientError
+            return _InfluxDBClient, _InfluxDBClientError
+        except Exception as err:
+            raise InfluxWriterError(
+                "InfluxDB v1 client import failed. Install package 'influxdb' "
+                "and ensure local ./influxdb folder is not shadowing the module."
+            ) from err
+        finally:
+            sys.path = original_sys_path
+
+
+InfluxDBClientError = InfluxWriterError
 
 
 class InfluxWriter:
@@ -32,23 +65,35 @@ class InfluxWriter:
         self.logger = logger
         self._client = None
         self._write_api = None
+        self._v1_error_cls = InfluxWriterError
+        self._v2_error_cls = InfluxWriterError
+        self._v3_error_cls = InfluxWriterError
 
         if self.version == "2":
             try:
+                from influxdb_client import InfluxDBClient as InfluxDBClient2
+                from influxdb_client.client.write_api import SYNCHRONOUS
+
+                self._v2_error_cls = Exception
                 self._client = InfluxDBClient2(url=url, token=token, org=org)
                 self._write_api = self._client.write_api(write_options=SYNCHRONOUS)
-            except InfluxDBError as err:
+            except Exception as err:
                 self.logger.error("Unable to connect with influxdb 2.x database! Aborted")
-                raise InfluxDBError("InfluxDB connection failed:" + str(err))
+                raise InfluxWriterError("InfluxDB v2 connection failed: " + str(err))
         elif self.version == "1":
             try:
+                InfluxDBClient, v1_error_cls = _safe_import_influxdb_v1()
+                self._v1_error_cls = v1_error_cls
                 self._client = InfluxDBClient(host=host, port=port, username=username, password=password)
                 self._client.switch_database(database)
-            except InfluxDBClientError as err:
+            except Exception as err:
                 self.logger.error("Unable to connect with influxdb 1.x database! Aborted")
-                raise InfluxDBClientError("InfluxDB connection failed:" + str(err))
+                raise InfluxWriterError("InfluxDB v1 connection failed: " + str(err))
         elif self.version == "3":
             try:
+                from influxdb_client_3 import InfluxDBClient3
+
+                self._v3_error_cls = Exception
                 self._client = InfluxDBClient3(
                     host=f"http://{host}:{port}",
                     token=v3_access_token,
@@ -62,38 +107,38 @@ class InfluxWriter:
                 }
                 # Write a static point to fail early if auth/connection is wrong.
                 self._client.write(record=[demo_point])
-            except InfluxDBError as err:
+            except Exception as err:
                 self.logger.error("Unable to connect with influxdb 3.x database! Aborted")
-                raise InfluxDBClientError("InfluxDB connection failed:" + str(err))
+                raise InfluxWriterError("InfluxDB v3 connection failed: " + str(err))
         else:
             self.logger.error("No matching version found. Supported values are 1 and 2 and 3")
-            raise InfluxDBClientError("No matching version found. Supported values are 1 and 2 and 3")
+            raise InfluxWriterError("No matching version found. Supported values are 1 and 2 and 3")
 
     def write_points(self, points) -> None:
         if self.version == "2":
             try:
                 self._write_api.write(bucket=self.bucket, org=self.org, record=points)
                 self.logger.info("Successfully updated influxdb database with new points")
-            except InfluxDBError as err:
+            except self._v2_error_cls as err:
                 self.logger.error("Unable to connect with influxdb 2.x database! " + str(err))
                 print("Influxdb connection failed! ", str(err))
         elif self.version == "1":
             try:
                 self._client.write_points(points)
                 self.logger.info("Successfully updated influxdb database with new points")
-            except InfluxDBClientError as err:
+            except self._v1_error_cls as err:
                 self.logger.error("Unable to connect with influxdb 1.x database! " + str(err))
                 print("Influxdb connection failed! ", str(err))
         elif self.version == "3":
             try:
                 self._client.write(record=points)
                 self.logger.info("Successfully updated influxdb database with new points")
-            except InfluxDBError as err:
+            except self._v3_error_cls as err:
                 self.logger.error("Unable to connect with influxdb 3.x database! " + str(err))
                 print("Influxdb connection failed! ", str(err))
         else:
             self.logger.error("No matching version found. Supported values are 1 and 2 and 3")
-            raise InfluxDBClientError("No matching version found. Supported values are 1 and 2 and 3")
+            raise InfluxWriterError("No matching version found. Supported values are 1 and 2 and 3")
 
     def fetch_direct_points_for_day(self, day_str: str, measurements: list[str]) -> list[dict]:
         """Fetch direct points for a single UTC day window."""
@@ -222,7 +267,7 @@ class InfluxWriter:
                 days=days,
                 metric_class=metric_class,
             )
-        raise InfluxDBClientError("query_metric_series currently supports only InfluxDB v1/v2")
+        raise InfluxWriterError("query_metric_series currently supports only InfluxDB v1/v2")
 
     def _query_metric_series_v1(
         self,
