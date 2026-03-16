@@ -6987,7 +6987,7 @@
           "measurement": "Derived RecoveryScore",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"score\") AS \"score\" FROM \"Derived RecoveryScore\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"score\") AS \"score\" FROM \"Derived RecoveryScore\" WHERE $timeFilter AND \"MetricClass\"='Derived' AND \"confidence\" >= 0.75 GROUP BY time($__interval) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -7822,7 +7822,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 6,
         "x": 0,
         "y": 184
       },
@@ -7862,7 +7862,7 @@
           "measurement": "Derived TrendSignals",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"slope_7d_rhr\") AS \"slope_7d_rhr\", mean(\"slope_7d_hrv\") AS \"slope_7d_hrv\", mean(\"slope_7d_sleep_minutes\") AS \"slope_7d_sleep_minutes\", mean(\"slope_7d_steps\") AS \"slope_7d_steps\", mean(\"slope_7d_training_load\") AS \"slope_7d_training_load\", mean(\"slope_7d_recovery_score\") AS \"slope_7d_recovery_score\" FROM \"Derived TrendSignals\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"slope_7d_rhr\") AS \"slope_7d_rhr\", mean(\"slope_7d_hrv\") AS \"slope_7d_hrv\", mean(\"slope_7d_sleep_minutes\") AS \"slope_7d_sleep_minutes\", mean(\"slope_7d_recovery_score\") AS \"slope_7d_recovery_score\" FROM \"Derived TrendSignals\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",
@@ -7884,7 +7884,115 @@
           "tags": []
         }
       ],
-      "title": "[Derived] Trend Signals (7d Slopes)",
+      "title": "[Derived] Trend Signals (Small Units)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_HEALTH_STATS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "pointSize": 6,
+            "showPoints": "always",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 18,
+        "x": 6,
+        "y": 184
+      },
+      "id": 92,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_HEALTH_STATS}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "hide": false,
+          "measurement": "Derived TrendSignals",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT mean(\"slope_7d_steps\") AS \"slope_7d_steps\", mean(\"slope_7d_training_load\") AS \"slope_7d_training_load\" FROM \"Derived TrendSignals\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "queryType": "randomWalk",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "slope_7d_rhr"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "mean"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "title": "[Derived] Trend Signals (Large Units)",
       "type": "timeseries"
     },
     {
@@ -7970,7 +8078,7 @@
           "measurement": "Derived ReadinessFlags",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"readiness_score\") AS \"readiness_score\", mean(\"readiness_confidence\") AS \"readiness_confidence\", mean(\"overreaching_flag\") AS \"overreaching_flag\", mean(\"under_recovered_flag\") AS \"under_recovered_flag\", mean(\"load_ratio\") AS \"load_ratio\" FROM \"Derived ReadinessFlags\" WHERE $timeFilter AND \"MetricClass\"='Derived' GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"readiness_score\") AS \"readiness_score\", mean(\"readiness_confidence\") AS \"readiness_confidence\", mean(\"overreaching_flag\") AS \"overreaching_flag\", mean(\"under_recovered_flag\") AS \"under_recovered_flag\", mean(\"load_ratio\") AS \"load_ratio\" FROM \"Derived ReadinessFlags\" WHERE $timeFilter AND \"MetricClass\"='Derived' AND \"readiness_confidence\" >= 0.75 GROUP BY time($__interval) fill(null)",
           "queryType": "randomWalk",
           "rawQuery": true,
           "refId": "A",

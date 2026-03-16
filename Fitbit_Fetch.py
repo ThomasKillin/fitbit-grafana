@@ -12,7 +12,11 @@ from fitbit_fetch.collectors_daily import (
 from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
 from fitbit_fetch.derived_metrics import build_derived_points
-from fitbit_fetch.derived_backfill import run_derived_startup_auto_backfill
+from fitbit_fetch.derived_backfill import (
+    DERIVED_BACKFILL_CONTEXT_DAYS,
+    DERIVED_BACKFILL_DIRECT_MEASUREMENTS,
+    run_derived_startup_auto_backfill,
+)
 from fitbit_fetch.fitbit_client import FitbitClient, InvalidRefreshTokenError
 from fitbit_fetch.influx_writer import InfluxWriter
 from fitbit_fetch.metric_classification import annotate_points_with_metric_class
@@ -127,10 +131,11 @@ def write_points_to_influxdb(points):
     if APP_SERVICES.influx_writer is None:
         raise RuntimeError("Influx writer is not initialized")
     direct_points = annotate_points_with_metric_class(points, "Direct")
+    derived_input_points = _build_runtime_derived_input_points(direct_points)
     derived_points = build_derived_points(
-        points=direct_points,
+        points=derived_input_points,
         devicename=APP_SERVICES.devicename,
-        end_date_str=APP_STATE.end_date_str or datetime.utcnow().strftime("%Y-%m-%d"),
+        end_date_str=APP_STATE.end_date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         enable_pipeline_health=ENABLE_DERIVED_PIPELINE_HEALTH,
         enable_recovery_score=ENABLE_DERIVED_RECOVERY_SCORE,
         enable_training_load=ENABLE_DERIVED_TRAINING_LOAD,
@@ -144,6 +149,43 @@ def write_points_to_influxdb(points):
     )
     APP_SERVICES.influx_writer.write_points(direct_points + derived_points)
     APP_STATE.last_pipeline_success_epoch = int(time.time())
+
+
+def _point_signature(point):
+    tags = tuple(sorted((point.get("tags") or {}).items()))
+    fields = tuple(sorted((point.get("fields") or {}).items()))
+    return (
+        point.get("measurement"),
+        point.get("time"),
+        tags,
+        fields,
+    )
+
+
+def _build_runtime_derived_input_points(direct_points):
+    end_date_str = APP_STATE.end_date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    context_start_str = (end_date - timedelta(days=DERIVED_BACKFILL_CONTEXT_DAYS - 1)).isoformat()
+
+    try:
+        historical_points = APP_SERVICES.influx_writer.fetch_direct_points_for_range(
+            start_day_str=context_start_str,
+            end_day_str=end_date_str,
+            measurements=DERIVED_BACKFILL_DIRECT_MEASUREMENTS,
+        )
+    except Exception as err:
+        logging.warning("Runtime derived context fetch failed, using current batch only: %s", err)
+        historical_points = []
+
+    merged = []
+    seen = set()
+    for point in historical_points + direct_points:
+        sig = _point_signature(point)
+        if sig in seen:
+            continue
+        seen.add(sig)
+        merged.append(point)
+    return merged
 
 def initialize_clients():
     APP_SERVICES.fitbit_client = FitbitClient(
