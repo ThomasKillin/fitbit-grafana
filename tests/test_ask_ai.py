@@ -1,7 +1,13 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from fitbit_fetch.ask_ai import answer_question, infer_target, infer_window_days, summarize_series
+from fitbit_fetch.ask_ai import (
+    METRIC_TARGETS,
+    answer_question,
+    infer_target,
+    infer_window_days,
+    summarize_series,
+)
 
 
 class _FakeInfluxWriter:
@@ -99,6 +105,26 @@ class AskAiTests(unittest.TestCase):
         post_mock.assert_called_once()
         called_url = post_mock.call_args.args[0]
         self.assertEqual(called_url, "http://localhost:11434/api/generate")
+
+    def test_answer_question_overall_summary_entire_dataset(self):
+        writer = _FakeInfluxWriter(
+            rows=[
+                {"time": "2026-03-01T00:00:00+00:00", "value": 10.0},
+                {"time": "2026-03-02T00:00:00+00:00", "value": 12.0},
+            ]
+        )
+        out = answer_question(
+            question="give a detailed summary of my health from the entire dataset",
+            influx_writer=writer,
+            openai_api_key=None,
+            ai_provider="local",
+        )
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["metric"], "Overall health summary")
+        self.assertEqual(out["days"], 3650)
+        self.assertEqual(len(writer.calls), len(METRIC_TARGETS))
+        self.assertTrue(all(call["days"] == 3650 for call in writer.calls))
+        self.assertIn("Health summary over last 3650 days", out["answer"])
 
 
 if __name__ == "__main__":

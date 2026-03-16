@@ -68,6 +68,22 @@ METRIC_TARGETS = (
 )
 
 
+def infer_overall_summary_intent(question: str) -> bool:
+    q = question.lower()
+    phrases = (
+        "entire dataset",
+        "full dataset",
+        "all data",
+        "overall health",
+        "overall summary",
+        "health summary",
+        "detailed summary",
+        "summary of my health",
+        "from the entire dataset",
+    )
+    return any(phrase in q for phrase in phrases)
+
+
 def infer_target(question: str) -> MetricTarget | None:
     q = question.lower()
     for target in METRIC_TARGETS:
@@ -120,6 +136,26 @@ def summarize_series(*, values: list[dict], label: str, unit: str, days: int) ->
         "delta": round(delta, 4),
         "unit": unit,
         "summary": summary,
+    }
+
+
+def summarize_multi_metric(*, per_metric: list[dict], days: int) -> dict:
+    available = [item for item in per_metric if item.get("points", 0) > 0]
+    missing = [item["label"] for item in per_metric if item.get("points", 0) == 0]
+    lines = [f"Health summary over last {days} days across {len(per_metric)} tracked metrics."]
+    if available:
+        lines.append("Available metrics:")
+        for item in available:
+            lines.append(f"- {item['summary']}")
+    if missing:
+        lines.append("No data found for: " + ", ".join(missing) + ".")
+    return {
+        "days": days,
+        "metric_count": len(per_metric),
+        "available_metric_count": len(available),
+        "missing_metrics": missing,
+        "metrics": per_metric,
+        "summary": " ".join(lines),
     }
 
 
@@ -212,6 +248,78 @@ def answer_question(
     ollama_base_url: str = "http://localhost:11434",
 ) -> dict:
     target = infer_target(question)
+    overall_intent = target is None and infer_overall_summary_intent(question)
+
+    if overall_intent:
+        q = question.lower()
+        days = 3650 if ("entire dataset" in q or "full dataset" in q or "all data" in q) else infer_window_days(
+            question,
+            default_days=default_window_days,
+        )
+        per_metric = []
+        for metric_target in METRIC_TARGETS:
+            series = influx_writer.query_metric_series(
+                measurement=metric_target.measurement,
+                field=metric_target.field,
+                days=days,
+                metric_class=metric_target.metric_class,
+            )
+            per_metric.append(
+                summarize_series(
+                    values=series,
+                    label=metric_target.label,
+                    unit=metric_target.unit,
+                    days=days,
+                )
+            )
+
+        summary = summarize_multi_metric(per_metric=per_metric, days=days)
+        provider = (ai_provider or "auto").strip().lower()
+        ai_text = None
+        if provider == "openai":
+            ai_text = maybe_openai_rewrite(
+                question=question,
+                summary_payload=summary,
+                api_key=openai_api_key,
+                model=openai_model,
+                base_url=openai_base_url,
+            )
+        elif provider == "ollama":
+            ai_text = maybe_ollama_rewrite(
+                question=question,
+                summary_payload=summary,
+                model=ollama_model,
+                base_url=ollama_base_url,
+            )
+        else:
+            if openai_api_key:
+                ai_text = maybe_openai_rewrite(
+                    question=question,
+                    summary_payload=summary,
+                    api_key=openai_api_key,
+                    model=openai_model,
+                    base_url=openai_base_url,
+                )
+            if ai_text is None:
+                ai_text = maybe_ollama_rewrite(
+                    question=question,
+                    summary_payload=summary,
+                    model=ollama_model,
+                    base_url=ollama_base_url,
+                )
+        return {
+            "ok": True,
+            "question": question,
+            "metric": "Overall health summary",
+            "measurement": None,
+            "field": None,
+            "metric_class": None,
+            "days": days,
+            "ai_provider": provider,
+            "summary": summary,
+            "answer": ai_text or summary["summary"],
+        }
+
     if target is None:
         supported = ", ".join(t.label for t in METRIC_TARGETS)
         return {
