@@ -124,7 +124,7 @@ class AskAiTests(unittest.TestCase):
         self.assertEqual(out["days"], 3650)
         self.assertEqual(len(writer.calls), len(METRIC_TARGETS))
         self.assertTrue(all(call["days"] == 3650 for call in writer.calls))
-        self.assertIn("Health summary over last 3650 days", out["answer"])
+        self.assertIn("I reviewed your overall health data for the last 3650 days", out["answer"])
 
 
 if __name__ == "__main__":

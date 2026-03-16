@@ -159,6 +159,45 @@ def summarize_multi_metric(*, per_metric: list[dict], days: int) -> dict:
     }
 
 
+def conversational_single_metric(*, metric: str, summary: dict, days: int) -> str:
+    if summary.get("points", 0) == 0:
+        return (
+            f"I checked your {metric.lower()} over the last {days} days, but I couldn't find data yet. "
+            "Once new points land in InfluxDB, I can summarize the trend."
+        )
+    latest = summary.get("latest")
+    avg = summary.get("average")
+    delta = summary.get("delta")
+    unit = summary.get("unit", "")
+    trend = "up" if (delta or 0) > 0 else ("down" if (delta or 0) < 0 else "flat")
+    return (
+        f"Here is the short version: over the last {days} days, your {metric.lower()} is trending {trend}. "
+        f"Latest is {latest:.2f} {unit}, average is {avg:.2f} {unit}, and net change is {delta:+.2f} {unit}. "
+        "If you want, I can break it down week by week next."
+    )
+
+
+def conversational_overall_summary(*, summary: dict, days: int) -> str:
+    metrics = summary.get("metrics", [])
+    available = [item for item in metrics if item.get("points", 0) > 0]
+    missing = summary.get("missing_metrics", [])
+    lead = (
+        f"I reviewed your overall health data for the last {days} days. "
+        f"I found usable data for {len(available)} of {len(metrics)} tracked metrics."
+    )
+    highlights = []
+    for item in available[:4]:
+        delta = item.get("delta")
+        unit = item.get("unit", "")
+        trend = "up" if (delta or 0) > 0 else ("down" if (delta or 0) < 0 else "flat")
+        highlights.append(f"{item['label']}: {trend} ({delta:+.2f} {unit}).")
+    missing_text = ""
+    if missing:
+        missing_text = " Missing data: " + ", ".join(missing) + "."
+    next_step = "If you want, I can now focus on one metric and explain the recent drivers in more detail."
+    return " ".join([lead, " ".join(highlights), missing_text, next_step]).strip()
+
+
 def maybe_openai_rewrite(
     *,
     question: str,
@@ -172,7 +211,8 @@ def maybe_openai_rewrite(
         return None
     prompt = (
         "You are a health dashboard analyst. Answer the user's question using only the provided stats. "
-        "Do not add medical advice. Keep the response under 120 words.\n\n"
+        "Write in a conversational style like ChatGPT: clear, natural, and concise. "
+        "Do not add medical advice. Keep the response under 140 words.\n\n"
         f"Question: {question}\n"
         f"Stats: {summary_payload}\n"
     )
@@ -183,7 +223,12 @@ def maybe_openai_rewrite(
             json={
                 "model": model,
                 "messages": [
-                    {"role": "system", "content": "Use only provided stats. Be concise."},
+                    {
+                        "role": "system",
+                        "content": (
+                            "Use only provided stats. Keep a conversational tone, plain English, and no medical advice."
+                        ),
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 "temperature": 0.2,
@@ -212,7 +257,8 @@ def maybe_ollama_rewrite(
 ) -> str | None:
     prompt = (
         "You are a health dashboard analyst. Answer using only provided stats. "
-        "Do not add medical advice. Keep under 120 words.\n\n"
+        "Write in conversational plain English. "
+        "Do not add medical advice. Keep under 140 words.\n\n"
         f"Question: {question}\n"
         f"Stats: {summary_payload}\n"
     )
@@ -317,7 +363,7 @@ def answer_question(
             "days": days,
             "ai_provider": provider,
             "summary": summary,
-            "answer": ai_text or summary["summary"],
+            "answer": ai_text or conversational_overall_summary(summary=summary, days=days),
         }
 
     if target is None:
@@ -382,5 +428,5 @@ def answer_question(
         "days": days,
         "ai_provider": provider,
         "summary": summary,
-        "answer": ai_text or summary["summary"],
+        "answer": ai_text or conversational_single_metric(metric=target.label, summary=summary, days=days),
     }
