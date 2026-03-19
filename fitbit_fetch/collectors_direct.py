@@ -44,6 +44,33 @@ def _to_utc_iso(local_timezone, naive_or_iso: str, default_suffix: str = "T00:00
     return parsed.astimezone(pytz.utc).isoformat()
 
 
+def _parse_vo2_value(raw_value):
+    if raw_value is None:
+        return None, None, None
+    if isinstance(raw_value, (int, float)):
+        value = float(raw_value)
+        return value, value, value
+    if isinstance(raw_value, str):
+        text = raw_value.strip()
+        if not text:
+            return None, None, None
+        if "-" in text:
+            parts = [p.strip() for p in text.split("-", 1)]
+            try:
+                low = float(parts[0])
+                high = float(parts[1])
+                midpoint = (low + high) / 2.0
+                return midpoint, low, high
+            except (TypeError, ValueError):
+                return None, None, None
+        try:
+            value = float(text)
+            return value, value, value
+        except ValueError:
+            return None, None, None
+    return None, None, None
+
+
 def _iter_date_chunks(start_date_str: str, end_date_str: str, max_days_per_chunk: int):
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
@@ -95,15 +122,22 @@ def collect_direct_cardio_fitness(
                 levels = value_blob.get("vo2MaxLevel")
                 if isinstance(levels, dict):
                     vo2_max = levels.get("vo2Max")
-            if vo2_max is None:
+            vo2_mid, vo2_low, vo2_high = _parse_vo2_value(vo2_max)
+            if vo2_mid is None:
                 continue
+
+            fields = {"vo2_max": float(vo2_mid)}
+            if vo2_low is not None:
+                fields["vo2_max_low"] = float(vo2_low)
+            if vo2_high is not None:
+                fields["vo2_max_high"] = float(vo2_high)
 
             collected_records.append(
                 {
                     "measurement": "CardioFitness",
                     "time": _to_utc_iso(local_timezone, str(date_key)),
                     "tags": {"Device": devicename},
-                    "fields": {"vo2_max": float(vo2_max)},
+                    "fields": fields,
                 }
             )
             written += 1

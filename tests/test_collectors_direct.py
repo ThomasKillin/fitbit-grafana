@@ -57,6 +57,26 @@ class CollectorsDirectTests(unittest.TestCase):
         self.assertIn("/cardioscore/date/2026-01-01/2026-01-30.json", called_urls[0])
         self.assertIn("/cardioscore/date/2026-03-02/2026-03-31.json", called_urls[2])
 
+    def test_collect_direct_cardio_fitness_parses_vo2_range_string(self):
+        def fake_request(_url):
+            return {"cardioScore": [{"dateTime": "2026-03-10", "value": {"vo2Max": "53-57"}}]}
+
+        collect_direct_cardio_fitness(
+            request_data_from_fitbit=fake_request,
+            start_date_str="2026-03-01",
+            end_date_str="2026-03-10",
+            local_timezone=self.local_timezone,
+            devicename="PixelWatch4",
+            collected_records=self.records,
+            logger=self.logger,
+            warning_cache=self.warning_cache,
+        )
+        self.assertEqual(len(self.records), 1)
+        self.assertEqual(self.records[0]["measurement"], "CardioFitness")
+        self.assertEqual(self.records[0]["fields"]["vo2_max"], 55.0)
+        self.assertEqual(self.records[0]["fields"]["vo2_max_low"], 53.0)
+        self.assertEqual(self.records[0]["fields"]["vo2_max_high"], 57.0)
+
     def test_collect_direct_ecg_is_best_effort_on_404(self):
         response = Mock(status_code=404)
         err = requests.exceptions.HTTPError(response=response)
