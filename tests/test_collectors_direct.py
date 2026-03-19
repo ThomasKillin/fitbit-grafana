@@ -36,6 +36,27 @@ class CollectorsDirectTests(unittest.TestCase):
         self.assertEqual(self.records[0]["measurement"], "CardioFitness")
         self.assertEqual(self.records[0]["fields"]["vo2_max"], 48.3)
 
+    def test_collect_direct_cardio_fitness_splits_long_ranges(self):
+        called_urls = []
+
+        def fake_request(url):
+            called_urls.append(url)
+            return {"cardioScore": []}
+
+        collect_direct_cardio_fitness(
+            request_data_from_fitbit=fake_request,
+            start_date_str="2026-01-01",
+            end_date_str="2026-03-31",
+            local_timezone=self.local_timezone,
+            devicename="PixelWatch4",
+            collected_records=self.records,
+            logger=self.logger,
+            warning_cache=self.warning_cache,
+        )
+        self.assertEqual(len(called_urls), 3)
+        self.assertIn("/cardioscore/date/2026-01-01/2026-01-30.json", called_urls[0])
+        self.assertIn("/cardioscore/date/2026-03-02/2026-03-31.json", called_urls[2])
+
     def test_collect_direct_ecg_is_best_effort_on_404(self):
         response = Mock(status_code=404)
         err = requests.exceptions.HTTPError(response=response)
@@ -100,4 +121,3 @@ class CollectorsDirectTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

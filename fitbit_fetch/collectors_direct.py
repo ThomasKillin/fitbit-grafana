@@ -1,6 +1,6 @@
 """Collectors for optional direct metrics (best-effort Fitbit endpoints)."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 import requests
@@ -44,6 +44,18 @@ def _to_utc_iso(local_timezone, naive_or_iso: str, default_suffix: str = "T00:00
     return parsed.astimezone(pytz.utc).isoformat()
 
 
+def _iter_date_chunks(start_date_str: str, end_date_str: str, max_days_per_chunk: int):
+    start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    if end_date < start_date:
+        return
+    cursor = start_date
+    while cursor <= end_date:
+        chunk_end = min(cursor + timedelta(days=max_days_per_chunk - 1), end_date)
+        yield cursor.isoformat(), chunk_end.isoformat()
+        cursor = chunk_end + timedelta(days=1)
+
+
 def collect_direct_cardio_fitness(
     *,
     request_data_from_fitbit,
@@ -55,47 +67,46 @@ def collect_direct_cardio_fitness(
     logger,
     warning_cache: set[str],
 ) -> None:
-    payload = _safe_request_json(
-        request_data_from_fitbit=request_data_from_fitbit,
-        url=f"https://api.fitbit.com/1/user/-/cardioscore/date/{start_date_str}/{end_date_str}.json",
-        logger=logger,
-        warning_cache=warning_cache,
-        warning_key="cardiofitness",
-    )
-    if payload is None:
-        return
-
-    records = payload.get("cardioScore", []) if isinstance(payload, dict) else []
-    if not records:
-        return
-
     written = 0
-    for row in records:
-        date_key = row.get("dateTime") or row.get("date")
-        if not date_key:
-            continue
-        value_blob = row.get("value", row)
-        vo2_max = (
-            value_blob.get("vo2Max")
-            if isinstance(value_blob, dict)
-            else None
+    # Fitbit cardioscore endpoint accepts max 30-day ranges.
+    for chunk_start, chunk_end in _iter_date_chunks(start_date_str, end_date_str, 30):
+        payload = _safe_request_json(
+            request_data_from_fitbit=request_data_from_fitbit,
+            url=f"https://api.fitbit.com/1/user/-/cardioscore/date/{chunk_start}/{chunk_end}.json",
+            logger=logger,
+            warning_cache=warning_cache,
+            warning_key="cardiofitness",
         )
-        if vo2_max is None and isinstance(value_blob, dict):
-            levels = value_blob.get("vo2MaxLevel")
-            if isinstance(levels, dict):
-                vo2_max = levels.get("vo2Max")
-        if vo2_max is None:
+        if payload is None:
             continue
 
-        collected_records.append(
-            {
-                "measurement": "CardioFitness",
-                "time": _to_utc_iso(local_timezone, str(date_key)),
-                "tags": {"Device": devicename},
-                "fields": {"vo2_max": float(vo2_max)},
-            }
-        )
-        written += 1
+        records = payload.get("cardioScore", []) if isinstance(payload, dict) else []
+        for row in records:
+            date_key = row.get("dateTime") or row.get("date")
+            if not date_key:
+                continue
+            value_blob = row.get("value", row)
+            vo2_max = (
+                value_blob.get("vo2Max")
+                if isinstance(value_blob, dict)
+                else None
+            )
+            if vo2_max is None and isinstance(value_blob, dict):
+                levels = value_blob.get("vo2MaxLevel")
+                if isinstance(levels, dict):
+                    vo2_max = levels.get("vo2Max")
+            if vo2_max is None:
+                continue
+
+            collected_records.append(
+                {
+                    "measurement": "CardioFitness",
+                    "time": _to_utc_iso(local_timezone, str(date_key)),
+                    "tags": {"Device": devicename},
+                    "fields": {"vo2_max": float(vo2_max)},
+                }
+            )
+            written += 1
 
     if written:
         logger.info("Recorded CardioFitness for date %s to %s", start_date_str, end_date_str)
@@ -266,4 +277,3 @@ def collect_device_sync_health(
         )
 
     logger.info("Recorded DeviceSyncHealth for %s", devicename)
-
