@@ -49,6 +49,10 @@ class ConfigTests(unittest.TestCase):
         self.assertFalse(config.enable_derived_auto_backfill)
         self.assertEqual(config.derived_auto_backfill_days, 30)
         self.assertEqual(config.derived_auto_backfill_max_days_per_run, 90)
+        self.assertFalse(config.enable_direct_cardio_fitness)
+        self.assertFalse(config.enable_direct_ecg)
+        self.assertFalse(config.enable_direct_irn)
+        self.assertFalse(config.enable_device_sync_health)
 
     def test_derived_feature_flags_override(self):
         with patch.dict(
@@ -66,6 +70,10 @@ class ConfigTests(unittest.TestCase):
                 "ENABLE_DERIVED_AUTO_BACKFILL": "true",
                 "DERIVED_AUTO_BACKFILL_DAYS": "45",
                 "DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN": "60",
+                "ENABLE_DIRECT_CARDIO_FITNESS": "true",
+                "ENABLE_DIRECT_ECG": "true",
+                "ENABLE_DIRECT_IRN": "true",
+                "ENABLE_DEVICE_SYNC_HEALTH": "true",
             },
             clear=True,
         ):
@@ -82,6 +90,10 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(config.enable_derived_auto_backfill)
         self.assertEqual(config.derived_auto_backfill_days, 45)
         self.assertEqual(config.derived_auto_backfill_max_days_per_run, 60)
+        self.assertTrue(config.enable_direct_cardio_fitness)
+        self.assertTrue(config.enable_direct_ecg)
+        self.assertTrue(config.enable_direct_irn)
+        self.assertTrue(config.enable_device_sync_health)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ DERIVED_BACKFILL_DIRECT_MEASUREMENTS = [
     "HRV",
     "RestingHR",
     "Total Steps",
+    "CardioFitness",
 ]
 DERIVED_BACKFILL_CONTEXT_DAYS = 35
 

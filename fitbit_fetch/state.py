@@ -13,3 +13,4 @@ class RuntimeState:
     end_date_str: str = ""
     collected_records: list = field(default_factory=list)
     last_pipeline_success_epoch: int | None = None
+    optional_endpoint_warnings: set[str] = field(default_factory=set)

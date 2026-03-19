@@ -24,6 +24,7 @@ def run_startup_or_bulk_update(
     yield_dates_with_gap,
     get_collected_records,
     set_collected_records,
+    get_direct_optional_data=None,
 ):
     if auto_date_range:
         date_list = build_date_list(start_date, end_date)
@@ -41,6 +42,8 @@ def run_startup_or_bulk_update(
         get_daily_data_limit_100d(start_date_str, end_date_str)
         get_daily_data_limit_365d(start_date_str, end_date_str)
         get_daily_data_limit_none(start_date_str, end_date_str)
+        if get_direct_optional_data is not None:
+            get_direct_optional_data(start_date_str, end_date_str)
         get_battery_level()
         fetch_latest_activities(end_date_str)
         set_collected_records(write_and_reset_records(write_points_to_influxdb, get_collected_records()))
@@ -57,6 +60,8 @@ def run_startup_or_bulk_update(
         fetch_latest_activities(date_list[-1])
         write_points_to_influxdb(get_collected_records())
         do_bulk_update(get_daily_data_limit_none, date_list[0], date_list[-1])
+        if get_direct_optional_data is not None:
+            do_bulk_update(get_direct_optional_data, date_list[0], date_list[-1])
         for date_range in yield_dates_with_gap(date_list, 360):
             do_bulk_update(get_daily_data_limit_365d, date_range[0], date_range[1])
         for date_range in yield_dates_with_gap(date_list, 98):
@@ -95,6 +100,7 @@ def run_scheduled_auto_update_loop(
     write_and_reset_records,
     update_working_dates,
     time_module,
+    get_direct_optional_data=None,
 ):
     schedule_module.every(1).hours.do(get_new_access_token)
     schedule_module.every(3).minutes.do(
@@ -114,6 +120,8 @@ def run_scheduled_auto_update_loop(
     schedule_module.every(4).hours.do(lambda: get_daily_data_limit_100d(get_start_date_str(), get_end_date_str()))
     schedule_module.every(6).hours.do(lambda: get_daily_data_limit_365d(get_start_date_str(), get_end_date_str()))
     schedule_module.every(6).hours.do(lambda: get_daily_data_limit_none(get_start_date_str(), get_end_date_str()))
+    if get_direct_optional_data is not None:
+        schedule_module.every(6).hours.do(lambda: get_direct_optional_data(get_start_date_str(), get_end_date_str()))
     schedule_module.every(1).hours.do(lambda: fetch_latest_activities(get_end_date_str()))
 
     while True:

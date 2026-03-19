@@ -50,6 +50,14 @@ METRIC_TARGETS = (
         aliases=("sleep", "sleep minutes", "minutes asleep"),
     ),
     MetricTarget(
+        label="Cardio fitness (direct VO2 max)",
+        measurement="CardioFitness",
+        field="vo2_max",
+        metric_class="Direct",
+        unit="ml/kg/min",
+        aliases=("cardio fitness", "vo2", "vo2 max", "direct cardio fitness"),
+    ),
+    MetricTarget(
         label="Recovery score",
         measurement="Derived RecoveryScore",
         field="score",
@@ -64,6 +72,30 @@ METRIC_TARGETS = (
         metric_class="Derived",
         unit="ratio",
         aliases=("load ratio", "training load ratio", "acute chronic ratio"),
+    ),
+    MetricTarget(
+        label="ECG events",
+        measurement="ECG",
+        field="event_count",
+        metric_class="Direct",
+        unit="events/day",
+        aliases=("ecg", "afib ecg", "ecg events"),
+    ),
+    MetricTarget(
+        label="IRN events",
+        measurement="IRN",
+        field="event_count",
+        metric_class="Direct",
+        unit="events/day",
+        aliases=("irn", "irregular rhythm", "irregular rhythm notification"),
+    ),
+    MetricTarget(
+        label="Device sync age",
+        measurement="DeviceSyncHealth",
+        field="minutes_since_last_sync",
+        metric_class="Direct",
+        unit="minutes",
+        aliases=("sync health", "device sync", "last sync", "minutes since sync"),
     ),
 )
 

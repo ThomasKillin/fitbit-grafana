@@ -127,6 +127,23 @@ def _derive_cardio_fitness(points) -> dict | None:
     }
 
 
+def _derive_cardio_fitness_delta(points) -> dict | None:
+    direct_cardio = _latest_measurement(points, "CardioFitness")
+    heuristic_cardio = _derive_cardio_fitness(points)
+    if direct_cardio is None or heuristic_cardio is None:
+        return None
+    direct_vo2 = float((direct_cardio.get("fields") or {}).get("vo2_max", 0) or 0)
+    estimated_vo2 = float(heuristic_cardio.get("vo2_estimate", 0) or 0)
+    if direct_vo2 <= 0 or estimated_vo2 <= 0:
+        return None
+    return {
+        "direct_vo2_max": round(direct_vo2, 2),
+        "estimated_vo2_max": round(estimated_vo2, 2),
+        "vo2_delta": round(direct_vo2 - estimated_vo2, 2),
+        "source": "direct_minus_heuristic",
+    }
+
+
 def _latest_value_by_date(points, measurement_name: str, field_name: str) -> dict:
     values = {}
     for point in points:
@@ -410,6 +427,16 @@ def build_derived_points(
                     "time": metric_time,
                     "tags": {"Device": devicename, "MetricClass": "Derived"},
                     "fields": cardio_fitness_fields,
+                }
+            )
+        cardio_delta_fields = _derive_cardio_fitness_delta(points)
+        if cardio_delta_fields is not None:
+            derived_points.append(
+                {
+                    "measurement": "Derived CardioFitnessDelta",
+                    "time": metric_time,
+                    "tags": {"Device": devicename, "MetricClass": "Derived"},
+                    "fields": cardio_delta_fields,
                 }
             )
 

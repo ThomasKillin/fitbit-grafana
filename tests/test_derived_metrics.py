@@ -56,7 +56,10 @@ class DerivedMetricsTests(unittest.TestCase):
         self.assertTrue(all(point["tags"]["MetricClass"] == "Derived" for point in derived))
 
     def test_cardio_fitness_point_when_resting_hr_present(self):
-        points = [{"measurement": "RestingHR", "time": "2026-02-28T00:00:00+00:00", "fields": {"value": 55}}]
+        points = [
+            {"measurement": "RestingHR", "time": "2026-02-28T00:00:00+00:00", "fields": {"value": 55}},
+            {"measurement": "CardioFitness", "time": "2026-02-28T00:00:00+00:00", "fields": {"vo2_max": 50.0}},
+        ]
         derived = build_derived_points(
             points=points,
             devicename="ChargeX",
@@ -72,11 +75,13 @@ class DerivedMetricsTests(unittest.TestCase):
             enable_readiness_flags=False,
             pipeline_previous_success_epoch=None,
         )
-        self.assertEqual(len(derived), 1)
-        self.assertEqual(derived[0]["measurement"], "Derived CardioFitness")
-        self.assertEqual(derived[0]["fields"]["source"], "heuristic_rhr")
-        self.assertEqual(derived[0]["fields"]["confidence"], 0.4)
-        self.assertGreater(derived[0]["fields"]["vo2_estimate"], 0)
+        measurements = {point["measurement"] for point in derived}
+        self.assertIn("Derived CardioFitness", measurements)
+        self.assertIn("Derived CardioFitnessDelta", measurements)
+        cardio = next(point for point in derived if point["measurement"] == "Derived CardioFitness")
+        self.assertEqual(cardio["fields"]["source"], "heuristic_rhr")
+        self.assertEqual(cardio["fields"]["confidence"], 0.4)
+        self.assertGreater(cardio["fields"]["vo2_estimate"], 0)
 
     def test_training_load_rolling_windows(self):
         end_date = date(2026, 2, 28)

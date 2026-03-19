@@ -50,6 +50,10 @@ class AppConfig:
     enable_derived_auto_backfill: bool
     derived_auto_backfill_days: int
     derived_auto_backfill_max_days_per_run: int
+    enable_direct_cardio_fitness: bool
+    enable_direct_ecg: bool
+    enable_direct_irn: bool
+    enable_device_sync_health: bool
 
 
 def _is_false_env(value: str | None) -> bool:
@@ -114,4 +118,8 @@ def load_config() -> AppConfig:
         enable_derived_auto_backfill=_env_bool("ENABLE_DERIVED_AUTO_BACKFILL", False),
         derived_auto_backfill_days=int(os.environ.get("DERIVED_AUTO_BACKFILL_DAYS") or 30),
         derived_auto_backfill_max_days_per_run=int(os.environ.get("DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN") or 90),
+        enable_direct_cardio_fitness=_env_bool("ENABLE_DIRECT_CARDIO_FITNESS", False),
+        enable_direct_ecg=_env_bool("ENABLE_DIRECT_ECG", False),
+        enable_direct_irn=_env_bool("ENABLE_DIRECT_IRN", False),
+        enable_device_sync_health=_env_bool("ENABLE_DEVICE_SYNC_HEALTH", False),
     )

@@ -9,6 +9,12 @@ from fitbit_fetch.collectors_daily import (
     collect_daily_data_limit_365d,
     collect_daily_data_limit_none,
 )
+from fitbit_fetch.collectors_direct import (
+    collect_device_sync_health,
+    collect_direct_cardio_fitness,
+    collect_direct_ecg,
+    collect_direct_irn,
+)
 from fitbit_fetch.config import load_config
 from fitbit_fetch.date_utils import build_date_range, refresh_auto_date_range, yield_dates_with_gap
 from fitbit_fetch.derived_metrics import build_derived_points
@@ -68,6 +74,10 @@ ENABLE_DERIVED_READINESS_FLAGS = CONFIG.enable_derived_readiness_flags
 ENABLE_DERIVED_AUTO_BACKFILL = CONFIG.enable_derived_auto_backfill
 DERIVED_AUTO_BACKFILL_DAYS = CONFIG.derived_auto_backfill_days
 DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN = CONFIG.derived_auto_backfill_max_days_per_run
+ENABLE_DIRECT_CARDIO_FITNESS = CONFIG.enable_direct_cardio_fitness
+ENABLE_DIRECT_ECG = CONFIG.enable_direct_ecg
+ENABLE_DIRECT_IRN = CONFIG.enable_direct_irn
+ENABLE_DEVICE_SYNC_HEALTH = CONFIG.enable_device_sync_health
 APP_STATE = RuntimeState()
 APP_SERVICES = AppServices(
     client_id=CONFIG.client_id,
@@ -345,6 +355,50 @@ def fetch_latest_activities(end_date_str):
         logger=logging,
     )
 
+def get_direct_optional_data(start_date_str, end_date_str):
+    if ENABLE_DIRECT_CARDIO_FITNESS:
+        collect_direct_cardio_fitness(
+            request_data_from_fitbit=request_data_from_fitbit,
+            start_date_str=start_date_str,
+            end_date_str=end_date_str,
+            local_timezone=APP_STATE.local_timezone,
+            devicename=APP_SERVICES.devicename,
+            collected_records=APP_STATE.collected_records,
+            logger=logging,
+            warning_cache=APP_STATE.optional_endpoint_warnings,
+        )
+    if ENABLE_DIRECT_ECG:
+        collect_direct_ecg(
+            request_data_from_fitbit=request_data_from_fitbit,
+            start_date_str=start_date_str,
+            end_date_str=end_date_str,
+            local_timezone=APP_STATE.local_timezone,
+            devicename=APP_SERVICES.devicename,
+            collected_records=APP_STATE.collected_records,
+            logger=logging,
+            warning_cache=APP_STATE.optional_endpoint_warnings,
+        )
+    if ENABLE_DIRECT_IRN:
+        collect_direct_irn(
+            request_data_from_fitbit=request_data_from_fitbit,
+            start_date_str=start_date_str,
+            end_date_str=end_date_str,
+            local_timezone=APP_STATE.local_timezone,
+            devicename=APP_SERVICES.devicename,
+            collected_records=APP_STATE.collected_records,
+            logger=logging,
+            warning_cache=APP_STATE.optional_endpoint_warnings,
+        )
+    if ENABLE_DEVICE_SYNC_HEALTH:
+        collect_device_sync_health(
+            request_data_from_fitbit=request_data_from_fitbit,
+            local_timezone=APP_STATE.local_timezone,
+            devicename=APP_SERVICES.devicename,
+            collected_records=APP_STATE.collected_records,
+            logger=logging,
+            warning_cache=APP_STATE.optional_endpoint_warnings,
+        )
+
 
 def main():
     initialize_clients()
@@ -394,6 +448,7 @@ def main():
         yield_dates_with_gap=yield_dates_with_gap,
         get_collected_records=get_collected_records,
         set_collected_records=set_collected_records,
+        get_direct_optional_data=get_direct_optional_data,
     )
 
     # %% [markdown]
@@ -422,6 +477,7 @@ def main():
             write_and_reset_records=write_and_reset_records,
             update_working_dates=update_working_dates,
             time_module=time,
+            get_direct_optional_data=get_direct_optional_data,
         )
 
 
