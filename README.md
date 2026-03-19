@@ -42,6 +42,7 @@ A script to fetch data from Fitbit servers using their API and store the data in
 - Import-ready derived block dashboard (InfluxDB v2): [Grafana_Dashboard/Derived Metrics Block for influxdb-v2.json](Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v2.json)
 - Improved full dashboard (InfluxDB v1 + derived row + query fixes): [Grafana_Dashboard/Health Stats Dashboard for influxdb-v1 - improved.json](Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v1%20-%20improved.json)
 - Improved full dashboard (InfluxDB v2 + derived row + query fixes): [Grafana_Dashboard/Health Stats Dashboard for influxdb-v2 - improved.json](Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v2%20-%20improved.json)
+- Both improved dashboards now include a `Direct Clinical Metrics` block (CardioFitness, ECG, IRN, DeviceSyncHealth) and a cardio-fitness delta panel.
 
 ### Dashboard Compatibility
 
@@ -108,6 +109,10 @@ You can enable/disable them with environment flags:
 - `ENABLE_DERIVED_AUTO_BACKFILL` (default: `false`)
 - `DERIVED_AUTO_BACKFILL_DAYS` (default: `30`)
 - `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN` (default: `90`)
+- `ENABLE_DIRECT_CARDIO_FITNESS` (default: `false`)
+- `ENABLE_DIRECT_ECG` (default: `false`)
+- `ENABLE_DIRECT_IRN` (default: `false`)
+- `ENABLE_DEVICE_SYNC_HEALTH` (default: `false`)
 
 If enabled, these measurements are written with `Derived ...` prefixes so they are easy to group under a dedicated `Derived Measurements` section in Grafana.
 All written points now also include a `MetricClass` tag (`Direct` or `Derived`) so Grafana panels/variables can filter explicitly by class.
@@ -144,6 +149,10 @@ Supported metrics in the first version:
 - Sleep minutes
 - Derived recovery score
 - Derived training load ratio
+- Direct cardio fitness (VO2 max)
+- ECG events
+- IRN events
+- Device sync age
 
 Optional LLM-enhanced wording (otherwise local deterministic summary is used):
 
@@ -228,6 +237,10 @@ services:
       - ENABLE_DERIVED_AUTO_BACKFILL=False # startup derived-only recompute from existing direct points
       - DERIVED_AUTO_BACKFILL_DAYS=30 # lookback days for startup backfill
       - DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN=90 # safety cap for startup backfill window
+      - ENABLE_DIRECT_CARDIO_FITNESS=False # direct CardioFitness endpoint (if account scope supports)
+      - ENABLE_DIRECT_ECG=False # direct ECG event endpoint (if account scope supports)
+      - ENABLE_DIRECT_IRN=False # direct irregular-rhythm notification endpoint (if account scope supports)
+      - ENABLE_DEVICE_SYNC_HEALTH=False # direct device sync freshness metric
       - INFLUXDB_VERSION=1
       - INFLUXDB_HOST=influxdb
       - INFLUXDB_PORT=8086

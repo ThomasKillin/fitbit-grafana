@@ -52,6 +52,10 @@ Recommended naming style for panel titles:
 | Weight | `weight` | `value` | Logged weight |
 | BMI | `bmi` | `value` | Logged BMI |
 | Device battery | `DeviceBatteryLevel` | `value` | Last synced battery |
+| Cardio fitness (direct) | `CardioFitness` | `vo2_max` | Direct VO2/cardio score endpoint (if enabled/scoped) |
+| ECG events | `ECG` | `event_count`, `avg_heart_rate`, `duration_ms` | ECG reading events with classification tag |
+| IRN events | `IRN` | `event_count`, `confidence` | Irregular rhythm notification events |
+| Device sync health | `DeviceSyncHealth` | `minutes_since_last_sync`, `sync_success`, `battery_level` | Device/app sync freshness and health |
 | Activity records | `Activity Records` | duration/calorie/distance/steps fields | Recent activity list |
 | GPS activity track | `GPS` | `lat`, `lon`, `speed_kph`, etc. | GPS-enabled activity tracks |
 
@@ -93,6 +97,10 @@ Recommended naming style for panel titles:
 - `weight.value`: Logged body weight.
 - `bmi.value`: Logged BMI (derived from height and weight by Fitbit).
 - `DeviceBatteryLevel.value`: Last synced battery status for your wearable device.
+- `CardioFitness.vo2_max`: Direct cardio fitness/VO2-style score from Fitbit endpoint (when available to your account/app scopes).
+- `ECG.event_count` (+ `classification` tag): ECG event records over time. Helpful to monitor event frequency and classification changes.
+- `IRN.event_count` (+ `event_type` tag): Irregular rhythm notifications as time-series events.
+- `DeviceSyncHealth.minutes_since_last_sync`: Minutes since device last synced. Useful operational metric when dashboard values look stale.
 
 ---
 
@@ -109,6 +117,7 @@ Recommended naming style for panel titles:
 | Readiness flags | `Derived ReadinessFlags` | readiness/confidence + boolean flags | RecoveryScore + TrainingLoad context | Implemented (feature-flagged) |
 | Pipeline freshness | `Derived PipelineHealth` | `last_success_epoch`, `minutes_since_success`, `record_count_last_run` | Runtime fetch/write state | Implemented (default on) |
 | Cardio fitness / VO2 trend | `Derived CardioFitness` | `vo2_estimate`, `source`, `confidence` | RestingHR-based heuristic (v1) | Implemented (feature-flagged) |
+| Cardio fitness delta | `Derived CardioFitnessDelta` | `direct_vo2_max`, `estimated_vo2_max`, `vo2_delta` | Direct `CardioFitness` vs derived heuristic | Implemented (feature-flagged) |
 
 ---
 
@@ -207,7 +216,21 @@ Recommended naming style for panel titles:
 - Caveats:
   - v1 is intentionally heuristic and based only on resting HR.
   - Should be interpreted as trend guidance, not lab-grade VO2 max testing.
-  - Future versions should prefer device/source-native VO2 estimates when available.
+- Future versions should prefer device/source-native VO2 estimates when available.
+
+### `Derived CardioFitnessDelta`
+
+- What it is: A comparison metric between direct cardio-fitness VO2 and the heuristic RHR-derived estimate.
+- How it is derived:
+  - Reads latest `CardioFitness.vo2_max` (direct endpoint).
+  - Reads latest heuristic estimate from `RestingHR`.
+  - Computes `vo2_delta = direct_vo2_max - estimated_vo2_max`.
+- What it means:
+  - Positive delta: direct endpoint reports higher VO2 than heuristic.
+  - Negative delta: heuristic is above direct endpoint value.
+- How it is useful:
+  - Sanity-checks the heuristic against direct watch/API data.
+  - Helps decide whether to rely more on direct cardio-fitness trends.
 
 ### `Derived CorrelationSignals`
 

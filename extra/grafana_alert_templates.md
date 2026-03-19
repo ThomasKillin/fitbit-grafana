@@ -311,3 +311,124 @@ Suggested rule:
 - Condition: `A < 0.1`
 - Evaluate every: `30m`
 - For: `1h`
+
+---
+
+## Alert 8: Cardio Fitness Deterioration (v1 InfluxQL)
+
+Purpose:
+- Detect meaningful drop in direct VO2 trend versus recent baseline.
+
+```sql
+SELECT mean("vo2_max") AS "vo2_max"
+FROM "CardioFitness"
+WHERE $timeFilter
+  AND "MetricClass"='Direct'
+GROUP BY time(7d) fill(null)
+```
+
+Suggested rule:
+- Time range: `now-56d` to `now`
+- Reduce: `last()`
+- Condition: `A < 38` (example absolute threshold; tune to your baseline)
+- Evaluate every: `1h`
+- For: `6h`
+
+## Alert 9: IRN Event Detected (v1 InfluxQL)
+
+Purpose:
+- Fire when any new IRN event appears in the last day.
+
+```sql
+SELECT sum("event_count") AS "events"
+FROM "IRN"
+WHERE $timeFilter
+  AND "MetricClass"='Direct'
+GROUP BY time(1d) fill(0)
+```
+
+Suggested rule:
+- Time range: `now-24h` to `now`
+- Reduce: `last()`
+- Condition: `A >= 1`
+- Evaluate every: `30m`
+- For: `0m`
+
+## Alert 10: Device Sync Stale (v1 InfluxQL)
+
+Purpose:
+- Detect stale device sync (pipeline may still run, but watch/app sync is old).
+
+```sql
+SELECT mean("minutes_since_last_sync") AS "minutes_since_last_sync"
+FROM "DeviceSyncHealth"
+WHERE $timeFilter
+  AND "MetricClass"='Direct'
+GROUP BY time(15m) fill(null)
+```
+
+Suggested rule:
+- Time range: `now-6h` to `now`
+- Reduce: `last()`
+- Condition: `A > 360`
+- Evaluate every: `15m`
+- For: `30m`
+
+---
+
+## Alert 8: Cardio Fitness Deterioration (v2 Flux)
+
+```flux
+from(bucket: v.defaultBucket)
+  |> range(start: -56d)
+  |> filter(fn: (r) =>
+      r._measurement == "CardioFitness" and
+      r._field == "vo2_max" and
+      r.MetricClass == "Direct")
+  |> aggregateWindow(every: 7d, fn: mean, createEmpty: false)
+  |> tail(n: 1)
+```
+
+Suggested rule:
+- Reduce: `last()`
+- Condition: `A < 38`
+- Evaluate every: `1h`
+- For: `6h`
+
+## Alert 9: IRN Event Detected (v2 Flux)
+
+```flux
+from(bucket: v.defaultBucket)
+  |> range(start: -24h)
+  |> filter(fn: (r) =>
+      r._measurement == "IRN" and
+      r._field == "event_count" and
+      r.MetricClass == "Direct")
+  |> aggregateWindow(every: 1d, fn: sum, createEmpty: false)
+  |> tail(n: 1)
+```
+
+Suggested rule:
+- Reduce: `last()`
+- Condition: `A >= 1`
+- Evaluate every: `30m`
+- For: `0m`
+
+## Alert 10: Device Sync Stale (v2 Flux)
+
+```flux
+from(bucket: v.defaultBucket)
+  |> range(start: -6h)
+  |> filter(fn: (r) =>
+      r._measurement == "DeviceSyncHealth" and
+      r._field == "minutes_since_last_sync" and
+      r.MetricClass == "Direct")
+  |> aggregateWindow(every: 15m, fn: mean, createEmpty: false)
+  |> tail(n: 1)
+```
+
+Suggested rule:
+- Reduce: `last()`
+- Condition: `A > 360`
+- Evaluate every: `15m`
+- For: `30m`
