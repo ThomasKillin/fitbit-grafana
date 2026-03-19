@@ -173,6 +173,21 @@ Local Ollama (no API key):
   - `OLLAMA_MODEL=llama3.1:8b`
   - `OLLAMA_URL=http://localhost:11434`
 
+### Optional endpoint capability check
+
+Quickly verify if your Fitbit account/app scopes expose optional direct endpoints (CardioFitness, ECG, IRN, DeviceSyncHealth):
+
+```bash
+python -m fitbit_fetch.endpoint_capability_cli
+python -m fitbit_fetch.endpoint_capability_cli --start-date 2026-03-01 --end-date 2026-03-14 --json
+```
+
+Interpretation:
+
+- `supported`: endpoint responded successfully.
+- `unavailable`: typically `403`/`404` (scope/region/account not enabled).
+- `error`: other runtime/API error; check logs/token/network.
+
 ## Install with Docker (Recommended)
 
 1. Follow this [guide](https://dev.fitbit.com/build/reference/web-api/developer-guide/getting-started/) to create an application. ❗ **The Fitbit `Oauth 2.0 Application Type` selection must be `personal` for intraday data access** ❗- Otherwise you might encounter `KeyError: 'activities-heart-intraday'` when fetching intraday Heart rate or steps data.
