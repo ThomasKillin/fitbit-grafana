@@ -9,6 +9,16 @@ A script to fetch data from Fitbit servers using their API and store the data in
 > [!IMPORTANT]
 > *Fitbit is a registered trademark of Google LLC. Grafana is a registered trademark of Grafana Labs. This project is an independent, open-source tool and is not affiliated with, endorsed by, sponsored by, or approved by Google LLC or Grafana Labs.*
 
+## Fork Highlights (vs upstream)
+
+- Refactored into a modular `fitbit_fetch/*` architecture while keeping `Fitbit_Fetch.py` as entrypoint.
+- Added direct vs derived metric classification (`MetricClass`) for clearer Grafana dashboards.
+- Added a broader derived analytics set (recovery, training load, correlation, z-scores, trend/readiness, pipeline health).
+- Added startup derived auto-backfill controls for rebuilding derived history safely.
+- Added Ask-the-AI query support (OpenAI or local Ollama) plus endpoint capability checks.
+- Added optional direct clinical collectors (`CardioFitness`, `ECG`, `IRN`, `DeviceSyncHealth`) with graceful fallback when unavailable.
+- Added improved v1/v2 dashboards and expanded alert templates.
+
 ## Dashboard Example
 
 ![Dashboard](https://github.com/arpanghosh8453/public-fitbit-projects/blob/main/Grafana_Dashboard/Dashboard.png?raw=true)
@@ -33,6 +43,36 @@ A script to fetch data from Fitbit servers using their API and store the data in
 - Historical data backfilling
 - Rate limit aware data collection
 - Ask-the-AI text query CLI for quick natural-language metric summaries
+
+## Main Improvements in This Fork
+
+Compared to the upstream repository, this fork adds:
+
+- A modularized codebase layout (`fitbit_fetch/*`) while keeping `Fitbit_Fetch.py` as the main entrypoint.
+- A full derived analytics layer with feature flags:
+  - recovery score, training load, cardio estimate
+  - correlation signals/matrix, z-scores, trend signals, readiness flags
+  - pipeline health telemetry
+- Startup derived auto-backfill controls:
+  - `ENABLE_DERIVED_AUTO_BACKFILL`
+  - `DERIVED_AUTO_BACKFILL_DAYS`
+  - `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN`
+- `MetricClass` tagging (`Direct` vs `Derived`) for cleaner Grafana filtering and panel grouping.
+- Ask-the-AI tooling:
+  - conversational natural-language summaries
+  - provider support for OpenAI and local Ollama
+  - endpoint capability checker CLI (`fitbit_fetch.endpoint_capability_cli`)
+- Optional direct clinical endpoint collectors (best-effort, non-fatal on unavailable scopes):
+  - `CardioFitness`, `ECG`, `IRN`, `DeviceSyncHealth`
+- Expanded dashboard coverage:
+  - improved InfluxDB v1 and v2 dashboards
+  - dedicated direct clinical metrics block
+  - additional derived comparison panel (`Derived CardioFitnessDelta`)
+- Expanded Grafana alert templates for readiness/trend/correlation anomalies plus direct endpoint monitoring.
+- Improved repo hygiene and safety:
+  - local/runtime directories ignored
+  - generic share-safe `compose.yml` template
+  - token-safe logging (no raw access token values in logs)
 
 - InfluxDB measurements and schema: [extra/influxdb_schema.md](extra/influxdb_schema.md)
 - Dashboard metric catalog (`Direct` vs `Derived`): [extra/dashboard_metrics_catalog.md](extra/dashboard_metrics_catalog.md)
