@@ -11,11 +11,13 @@ services:
     environment:
       - FITBIT_LOG_FILE_PATH=/app/logs/fitbit.log
       - TOKEN_FILE_PATH=/app/tokens/fitbit.token
-      - AUTO_DATE_RANGE=True      # Used for bulk update, read Historical Data Update section in README
-      - FITBIT_RATE_LIMIT_BUFFER_SECONDS=300 # extra buffer after Fitbit 429 reset header
-      - ENABLE_DERIVED_PIPELINE_HEALTH=True # Derived PipelineHealth measurement
-      - ENABLE_DERIVED_RECOVERY_SCORE=True # Derived RecoveryScore measurement
-      - ENABLE_DERIVED_TRAINING_LOAD=True # Derived TrainingLoad 
+      - AUTO_DATE_RANGE=True # Set False for manual bulk update
+      - FITBIT_RATE_LIMIT_BUFFER_SECONDS=300
+
+      # Derived metrics
+      - ENABLE_DERIVED_PIPELINE_HEALTH=True
+      - ENABLE_DERIVED_RECOVERY_SCORE=True
+      - ENABLE_DERIVED_TRAINING_LOAD=True
       - ENABLE_DERIVED_CARDIO_FITNESS=True
       - ENABLE_DERIVED_CORRELATION_SIGNALS=True
       - ENABLE_DERIVED_CORRELATION_MATRIX=True
@@ -25,23 +27,28 @@ services:
       - ENABLE_DERIVED_AUTO_BACKFILL=True
       - DERIVED_AUTO_BACKFILL_DAYS=120
       - DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN=120
+
+      # Optional direct clinical endpoints
       - ENABLE_DIRECT_CARDIO_FITNESS=True
       - ENABLE_DIRECT_ECG=True
       - ENABLE_DIRECT_IRN=True
       - ENABLE_DEVICE_SYNC_HEALTH=True
+
+      # InfluxDB config (v1 defaults)
       - INFLUXDB_VERSION=1
       - INFLUXDB_HOST=influxdb
       - INFLUXDB_PORT=8086
       - INFLUXDB_USERNAME=fitbit_user
       - INFLUXDB_PASSWORD=fitbit_password
       - INFLUXDB_DATABASE=FitbitHealthStats
-      - CLIENT_ID=23V329 # Change this to your client ID
-      - CLIENT_SECRET=d9a29479cf6122504c54469e32170f9b # Change this to your client Secret
-      - DEVICENAME=PixelWatch4 # Change this to your device name - e.g. "Charge5" without quotes
+
+      # Fitbit app credentials (REQUIRED: fill your own values)
+      - CLIENT_ID=your_application_client_ID
+      - CLIENT_SECRET=your_application_client_secret
+      - DEVICENAME=Your_Device_Name
       - LOCAL_TIMEZONE=Automatic
     depends_on:
       - influxdb
-
 
   influxdb:
     restart: unless-stopped
@@ -60,12 +67,12 @@ services:
       # - INFLUXDB3_BUCKET=GarminStats
       # - INFLUXDB3_OBJECT_STORE=file
       # - INFLUXDB3_DB_DIR=/data
-      # - INFLUXDB3_QUERY_FILE_LIMIT=5000 # this set to be a very high value if you want to view long term data
+      # - INFLUXDB3_QUERY_FILE_LIMIT=5000
     ports:
-      - '8086:8086' # Influxdb V3 should map as "8181:8181" (Change INFLUXDB_PORT to 8181 on fitbit-fetch-data appropriately for InfluxDB V3)
+      - "8086:8086"
     volumes:
-      - ./influxdb:/var/lib/influxdb # InfluxDB V3 bind mount should be set like - ./influxdb:/data if you set INFLUXDB3_DB_DIR=/data (instead of /var/lib/influxdb)
-    image: 'influxdb:1.11' # You must change this to 'quay.io/influxdb/influxdb3-core:latest' for influxdb V3
+      - ./influxdb:/var/lib/influxdb
+    image: "influxdb:1.11"
 
   grafana:
     restart: unless-stopped
@@ -76,7 +83,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_PLUGINS_PREINSTALL=marcusolsson-hourly-heatmap-panel
     volumes:
-      - './grafana:/var/lib/grafana'
+      - ./grafana:/var/lib/grafana
     ports:
-      - '3000:3000'
-    image: 'grafana/grafana:latest'
+      - "3000:3000"
+    image: "grafana/grafana:latest"

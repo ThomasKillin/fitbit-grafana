@@ -82,13 +82,13 @@ class FitbitClient:
                     )
                     time.sleep(retry_after)
                 elif response.status_code == 401:  # Access token expired ( most likely )
-                    self.logger.info("Current Access Token : " + self.access_token)
+                    self.logger.info("Current access token expired; requesting refresh")
                     self.logger.warning(
                         "Error code : " + str(response.status_code) + ", Details : " + response.text
                     )
                     print("Error code : " + str(response.status_code) + ", Details : " + response.text)
                     self.access_token = self.get_new_access_token(self.client_id, self.client_secret)
-                    self.logger.info("New Access Token : " + self.access_token)
+                    self.logger.info("Access token refresh succeeded")
                     headers["Authorization"] = f"Bearer {self.access_token}"
                     time.sleep(30)
                     if retry_attempts > self.expired_token_max_retry:
