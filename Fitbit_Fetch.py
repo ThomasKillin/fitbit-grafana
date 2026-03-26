@@ -1,4 +1,5 @@
 # %%
+import os
 import schedule, time, pytz, logging, sys
 from datetime import datetime, timedelta, timezone
 from fitbit_fetch.collectors_activity import collect_latest_activities, collect_tcx_data
@@ -89,16 +90,33 @@ APP_SERVICES = AppServices(
 # ## Logging setup
 
 # %%
-if OVERWRITE_LOG_FILE:
-    with open(FITBIT_LOG_FILE_PATH, "w"): pass
+log_handlers = [logging.StreamHandler(sys.stdout)]
+if FITBIT_LOG_FILE_PATH:
+    try:
+        log_dir = os.path.dirname(FITBIT_LOG_FILE_PATH)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+        if OVERWRITE_LOG_FILE:
+            with open(FITBIT_LOG_FILE_PATH, "w", encoding="utf-8"):
+                pass
+        log_handlers.insert(0, logging.FileHandler(FITBIT_LOG_FILE_PATH, mode="a", encoding="utf-8"))
+    except PermissionError as exc:
+        print(
+            f"Warning: unable to write log file '{FITBIT_LOG_FILE_PATH}' ({exc}). "
+            "Falling back to stdout logging only.",
+            file=sys.stderr,
+        )
+    except OSError as exc:
+        print(
+            f"Warning: log file setup failed for '{FITBIT_LOG_FILE_PATH}' ({exc}). "
+            "Falling back to stdout logging only.",
+            file=sys.stderr,
+        )
 
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(FITBIT_LOG_FILE_PATH, mode='a'),
-        logging.StreamHandler(sys.stdout)
-    ]
+    handlers=log_handlers,
 )
 
 # %% [markdown]

@@ -30,20 +30,28 @@ def _derive_daily_load_from_hr_zones(points) -> float | None:
 
 def _derive_daily_load_by_date(points) -> dict:
     daily_load_by_date = {}
+    latest_timestamp_by_date = {}
     for point in points:
         if point.get("measurement") != "HR zones":
             continue
         point_time = point.get("time", "")
         if "T" not in point_time:
             continue
-        point_date = point_time.split("T", 1)[0]
+        try:
+            point_dt = datetime.fromisoformat(point_time.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        point_date = point_dt.date().isoformat()
         fields = point.get("fields", {})
         normal = float(fields.get("Normal", 0) or 0)
         fat_burn = float(fields.get("Fat Burn", 0) or 0)
         cardio = float(fields.get("Cardio", 0) or 0)
         peak = float(fields.get("Peak", 0) or 0)
         load_value = normal + (2 * fat_burn) + (3 * cardio) + (4 * peak)
-        daily_load_by_date[point_date] = daily_load_by_date.get(point_date, 0.0) + load_value
+        latest_dt = latest_timestamp_by_date.get(point_date)
+        if latest_dt is None or point_dt >= latest_dt:
+            latest_timestamp_by_date[point_date] = point_dt
+            daily_load_by_date[point_date] = load_value
     return daily_load_by_date
 
 

@@ -118,6 +118,39 @@ class DerivedMetricsTests(unittest.TestCase):
         self.assertEqual(derived[0]["fields"]["chronic_28d"], 10.0)
         self.assertEqual(derived[0]["fields"]["load_ratio"], 1.0)
 
+    def test_training_load_uses_latest_hr_zone_snapshot_per_day(self):
+        points = [
+            {
+                "measurement": "HR zones",
+                "time": "2026-02-28T01:00:00+00:00",
+                "fields": {"Normal": 500, "Fat Burn": 100, "Cardio": 50, "Peak": 20},
+            },
+            {
+                "measurement": "HR zones",
+                "time": "2026-02-28T20:00:00+00:00",
+                "fields": {"Normal": 1000, "Fat Burn": 200, "Cardio": 100, "Peak": 50},
+            },
+        ]
+        derived = build_derived_points(
+            points=points,
+            devicename="ChargeX",
+            end_date_str="2026-02-28",
+            enable_pipeline_health=False,
+            enable_recovery_score=False,
+            enable_training_load=True,
+            enable_cardio_fitness=False,
+            enable_correlation_signals=False,
+            enable_correlation_matrix=False,
+            enable_zscores=False,
+            enable_trend_signals=False,
+            enable_readiness_flags=False,
+            pipeline_previous_success_epoch=None,
+        )
+        self.assertEqual(len(derived), 1)
+        self.assertEqual(derived[0]["measurement"], "Derived TrainingLoad")
+        # Latest snapshot load: 1000 + 2*200 + 3*100 + 4*50 = 1900
+        self.assertEqual(derived[0]["fields"]["daily_load"], 1900.0)
+
     def test_correlation_signals_day_over_day_deltas(self):
         points = [
             {"measurement": "RestingHR", "time": "2026-02-27T00:00:00+00:00", "fields": {"value": 58}},
