@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+
+# Local runtime/state directories
+logs/
+tokens/
+influxdb/
+grafana/
+
+# Local compose overrides/backups
+compose.local.yml
+*.local.yml
+
+# Local env and secrets
+.env
+.env.*
+
+# OS/editor noise
+*.tmp
+*.bak
+*~
+Thumbs.db
+Desktop.ini
+.DS_Store

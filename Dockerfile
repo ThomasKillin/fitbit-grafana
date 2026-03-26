@@ -13,6 +13,7 @@ RUN python -m pip install -r requirements.txt
 
 WORKDIR /app
 COPY ./Fitbit_Fetch.py /app
+COPY ./fitbit_fetch /app/fitbit_fetch
 COPY ./requirements.txt /app
 
 RUN groupadd --gid 1000 appuser && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser && chown -R appuser:appuser /app

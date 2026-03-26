@@ -9,6 +9,16 @@ A script to fetch data from Fitbit servers using their API and store the data in
 > [!IMPORTANT]
 > *Fitbit is a registered trademark of Google LLC. Grafana is a registered trademark of Grafana Labs. This project is an independent, open-source tool and is not affiliated with, endorsed by, sponsored by, or approved by Google LLC or Grafana Labs.*
 
+## Fork Highlights (vs upstream)
+
+- Refactored into a modular `fitbit_fetch/*` architecture while keeping `Fitbit_Fetch.py` as entrypoint.
+- Added direct vs derived metric classification (`MetricClass`) for clearer Grafana dashboards.
+- Added a broader derived analytics set (recovery, training load, correlation, z-scores, trend/readiness, pipeline health).
+- Added startup derived auto-backfill controls for rebuilding derived history safely.
+- Added Ask-the-AI query support (OpenAI or local Ollama) plus endpoint capability checks.
+- Added optional direct clinical collectors (`CardioFitness`, `ECG`, `IRN`, `DeviceSyncHealth`) with graceful fallback when unavailable.
+- Added improved v1/v2 dashboards and expanded alert templates.
+
 ## Dashboard Example
 
 ![Dashboard](https://github.com/arpanghosh8453/public-fitbit-projects/blob/main/Grafana_Dashboard/Dashboard.png?raw=true)
@@ -32,18 +42,201 @@ A script to fetch data from Fitbit servers using their API and store the data in
 - Automated token refresh
 - Historical data backfilling
 - Rate limit aware data collection
+- Ask-the-AI text query CLI for quick natural-language metric summaries
 
-✅ Available Influxdb database measurements and schema is available [here](extra/influxdb_schema.md)
+## Main Improvements in This Fork
+
+Compared to the upstream repository, this fork adds:
+
+- A modularized codebase layout (`fitbit_fetch/*`) while keeping `Fitbit_Fetch.py` as the main entrypoint.
+- A full derived analytics layer with feature flags:
+  - recovery score, training load, cardio estimate
+  - correlation signals/matrix, z-scores, trend signals, readiness flags
+  - pipeline health telemetry
+- Startup derived auto-backfill controls:
+  - `ENABLE_DERIVED_AUTO_BACKFILL`
+  - `DERIVED_AUTO_BACKFILL_DAYS`
+  - `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN`
+- `MetricClass` tagging (`Direct` vs `Derived`) for cleaner Grafana filtering and panel grouping.
+- Ask-the-AI tooling:
+  - conversational natural-language summaries
+  - provider support for OpenAI and local Ollama
+  - endpoint capability checker CLI (`fitbit_fetch.endpoint_capability_cli`)
+- Optional direct clinical endpoint collectors (best-effort, non-fatal on unavailable scopes):
+  - `CardioFitness`, `ECG`, `IRN`, `DeviceSyncHealth`
+- Expanded dashboard coverage:
+  - improved InfluxDB v1 and v2 dashboards
+  - dedicated direct clinical metrics block
+  - additional derived comparison panel (`Derived CardioFitnessDelta`)
+- Expanded Grafana alert templates for readiness/trend/correlation anomalies plus direct endpoint monitoring.
+- Improved repo hygiene and safety:
+  - local/runtime directories ignored
+  - generic share-safe `compose.yml` template
+  - token-safe logging (no raw access token values in logs)
+
+- InfluxDB measurements and schema: [extra/influxdb_schema.md](extra/influxdb_schema.md)
+- Dashboard metric catalog (`Direct` vs `Derived`): [extra/dashboard_metrics_catalog.md](extra/dashboard_metrics_catalog.md)
+- Grafana panel query templates (`Direct` vs `Derived`): [extra/grafana_panel_templates.md](extra/grafana_panel_templates.md)
+- Grafana alert templates (`Derived PipelineHealth`): [extra/grafana_alert_templates.md](extra/grafana_alert_templates.md)
+- Import-ready derived block dashboard (InfluxDB v1): [Grafana_Dashboard/Derived Metrics Block for influxdb-v1.json](Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v1.json)
+- Import-ready derived block dashboard (InfluxDB v2): [Grafana_Dashboard/Derived Metrics Block for influxdb-v2.json](Grafana_Dashboard/Derived%20Metrics%20Block%20for%20influxdb-v2.json)
+- Improved full dashboard (InfluxDB v1 + derived row + query fixes): [Grafana_Dashboard/Health Stats Dashboard for influxdb-v1 - improved.json](Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v1%20-%20improved.json)
+- Improved full dashboard (InfluxDB v2 + derived row + query fixes): [Grafana_Dashboard/Health Stats Dashboard for influxdb-v2 - improved.json](Grafana_Dashboard/Health%20Stats%20Dashboard%20for%20influxdb-v2%20-%20improved.json)
+- Both improved dashboards now include a `Direct Clinical Metrics` block (CardioFitness, ECG, IRN, DeviceSyncHealth) and a cardio-fitness delta panel.
+
+### Dashboard Compatibility
+
+- Use `influxdb-v1` JSON files with InfluxQL datasources (InfluxDB v1 mode).
+- Use `influxdb-v2` JSON files with Flux datasources (InfluxDB v2 mode).
+
+If you import a v2/Flux JSON into an InfluxQL datasource, panels fail with parsing errors like:
+`found FROM, expected identifier`.
+
+Quick import choice:
+
+- InfluxQL datasource -> `Fitbit Derived Metrics Block (InfluxQL / v1)` or `Fitbit Stats (Improved + Derived) (InfluxQL / v1)`
+- Flux datasource -> `Fitbit Derived Metrics Block (Flux / v2)` or `Fitbit Stats (Improved + Derived) (Flux / v2)`
+
+### Dashboard Clarity Rule
+
+When adding new panels, separate them into two sections:
+
+- `Direct Measurements`
+- `Derived Measurements`
+
+This keeps API-native metrics distinct from computed analytics and makes dashboard interpretation easier.
+
+## Code Structure (Refactor Notes)
+
+The project now uses a modular layout while keeping `Fitbit_Fetch.py` as the entrypoint:
+
+- `fitbit_fetch/config.py`: environment loading and validation
+- `fitbit_fetch/fitbit_client.py`: Fitbit API calls, retries, token refresh flow
+- `fitbit_fetch/influx_writer.py`: InfluxDB v1/v2/v3 initialization and writes
+- `fitbit_fetch/collectors_*.py`: metric-specific data collectors
+- `fitbit_fetch/runner.py`: startup/bulk/scheduled orchestration flows
+- `fitbit_fetch/state.py`: mutable runtime state container
+- `fitbit_fetch/services.py`: runtime dependency/service container
+- `fitbit_fetch/run_utils.py` and `fitbit_fetch/date_utils.py`: orchestration/date helpers
+
+### Quick regression checks
+
+```bash
+docker run --rm -v "${PWD}:/app" -w /app python:3.10-slim python -m unittest discover -s tests -p "test_*.py" -v
+docker build -t fitbit-grafana-refactor-test .
+```
+
+### Optional rate-limit tuning
+
+When Fitbit returns HTTP `429`, you can tune the extra wait buffer via:
+
+- `FITBIT_RATE_LIMIT_BUFFER_SECONDS` (default: `300`)
+
+### Optional derived-metric toggles
+
+Derived measurements are intentionally separate from direct Fitbit measurements.
+You can enable/disable them with environment flags:
+
+- `ENABLE_DERIVED_PIPELINE_HEALTH` (default: `true`)
+- `ENABLE_DERIVED_RECOVERY_SCORE` (default: `false`)
+- `ENABLE_DERIVED_TRAINING_LOAD` (default: `false`)
+- `ENABLE_DERIVED_CARDIO_FITNESS` (default: `false`)
+- `ENABLE_DERIVED_CORRELATION_SIGNALS` (default: `false`)
+- `ENABLE_DERIVED_CORRELATION_MATRIX` (default: `false`)
+- `ENABLE_DERIVED_ZSCORES` (default: `false`)
+- `ENABLE_DERIVED_TREND_SIGNALS` (default: `false`)
+- `ENABLE_DERIVED_READINESS_FLAGS` (default: `false`)
+- `ENABLE_DERIVED_AUTO_BACKFILL` (default: `false`)
+- `DERIVED_AUTO_BACKFILL_DAYS` (default: `30`)
+- `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN` (default: `90`)
+- `ENABLE_DIRECT_CARDIO_FITNESS` (default: `false`)
+- `ENABLE_DIRECT_ECG` (default: `false`)
+- `ENABLE_DIRECT_IRN` (default: `false`)
+- `ENABLE_DEVICE_SYNC_HEALTH` (default: `false`)
+
+If enabled, these measurements are written with `Derived ...` prefixes so they are easy to group under a dedicated `Derived Measurements` section in Grafana.
+All written points now also include a `MetricClass` tag (`Direct` or `Derived`) so Grafana panels/variables can filter explicitly by class.
+
+### Optional derived startup auto-backfill
+
+When enabled, the service performs a one-time derived-only recompute at startup before regular collection begins.
+
+- `ENABLE_DERIVED_AUTO_BACKFILL=true`
+- `DERIVED_AUTO_BACKFILL_DAYS=30`
+- `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN=90`
+
+Behavior:
+
+- Reads direct points from InfluxDB for each day in the lookback window.
+- Recomputes only enabled derived measurements and writes them back with `MetricClass='Derived'`.
+- Skips days with insufficient source inputs.
+- Caps processing window with `DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN` to avoid heavy startup load.
+
+### Ask-the-AI text query (Step 1)
+
+You can query metrics in plain English from your Influx data:
+
+```bash
+python -m fitbit_fetch.ask_ai_cli --question "How has my recovery score changed in last 14 days?"
+python -m fitbit_fetch.ask_ai_cli --question "What is my resting heart rate trend over 2 weeks?" --json
+```
+
+Supported metrics in the first version:
+
+- Resting heart rate
+- HRV (daily RMSSD)
+- Daily steps
+- Sleep minutes
+- Derived recovery score
+- Derived training load ratio
+- Direct cardio fitness (VO2 max)
+- ECG events
+- IRN events
+- Device sync age
+
+Optional LLM-enhanced wording (otherwise local deterministic summary is used):
+
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (default `gpt-4.1-mini`)
+- `OPENAI_BASE_URL` (default `https://api.openai.com/v1`)
+
+Provider selection:
+
+- `AI_PROVIDER=auto|openai|ollama` (default `auto`)
+  - `auto`: uses OpenAI when `OPENAI_API_KEY` exists, otherwise tries Ollama, then falls back to deterministic local summary.
+
+Local Ollama (no API key):
+
+- Install Ollama and pull a model, for example: `ollama pull llama3.1:8b`
+- Set:
+  - `AI_PROVIDER=ollama`
+  - `OLLAMA_MODEL=llama3.1:8b`
+  - `OLLAMA_URL=http://localhost:11434`
+
+### Optional endpoint capability check
+
+Quickly verify if your Fitbit account/app scopes expose optional direct endpoints (CardioFitness, ECG, IRN, DeviceSyncHealth):
+
+```bash
+python -m fitbit_fetch.endpoint_capability_cli
+python -m fitbit_fetch.endpoint_capability_cli --start-date 2026-03-01 --end-date 2026-03-14 --json
+```
+
+Interpretation:
+
+- `supported`: endpoint responded successfully.
+- `unavailable`: typically `403`/`404` (scope/region/account not enabled).
+- `error`: other runtime/API error; check logs/token/network.
 
 ## Install with Docker (Recommended)
 
-1. Follow this [guide](https://dev.fitbit.com/build/reference/web-api/developer-guide/getting-started/) to create an application. ❗ **The Fitbit `Oauth 2.0 Application Type` selection must be `personal` for intraday data access** ❗- Otherwise you might encounter `KeyError: 'activities-heart-intraday'` when fetching intraday Heart rate or steps data.
+1. Follow this [guide](https://dev.fitbit.com/build/reference/web-api/developer-guide/getting-started/) to create an application. **The Fitbit `Oauth 2.0 Application Type` selection must be `personal` for intraday data access**. Otherwise you might encounter `KeyError: 'activities-heart-intraday'` when fetching intraday heart rate or steps data.
 
 ![image](https://github.com/user-attachments/assets/323884a6-8154-477b-811b-6e75b90f53f8)
 
 2. `Default Access Type` should be `Read Only`. For the Privacy Policy and TOS URLs, you can enter any valid URL links. Those won't be checked or verified as long as they are valid URLs. The `Redirect URL` could be anything that does not redirect to any existing page/service (as the redirected page url will contain some tokens), I suggest using a dummy `http://localhost:8888` or `http://localhost:8000`. This process will give you a `client ID`, `client secret`, and then you must follow the Oauth 2.0 Tutorial link (marked with `2` above) to receive the required `refresh token` for the setup (see step `5`)
 
-3. Create a folder named `fitbit-fetch-data`, cd into the folder, create a `compose.yml` file with the content of the given compose example below ( Change the enviornment variables accordingly )
+3. Create a folder named `fitbit-fetch-data`, cd into the folder, and create a `compose.yml` file with the compose example below (change the environment variables accordingly).
 
 4. Create two folders named `logs` and `tokens` inside and make sure to chown them for uid `1000` as the docker container runs the scripts as user uid `1000` ( otherwise you may get read/write permission denied errors )
 
@@ -53,7 +246,7 @@ Note: If you are planning to use Influxdb V3, you need to enter the admin access
 
 6. Finally run : `docker compose up -d` ( to launch the full stack in detached mode ). Thereafter you should check the logs with `docker compose logs --follow` to see any potential error from the containers. This will help you debug the issue, if there is any (specially read/write permission issues)
 
-7. Now you can check out the `localhost:3000` to reach Grafana, do the initial setup, add the influxdb as a datasource (the influxdb address should be `http://influxdb:8086` as they are part of the same network stack, and username should be `fitbit_user` with the password `fitbit_password` for the database name `FitbitHealthStats` if you are using the default settings from the compose file.). Test the connection to make sure the influxdb is up and rechable (you are good to go if it finds the measurements when you test the connection)
+7. Now you can check out the `localhost:3000` to reach Grafana, do the initial setup, add the influxdb as a datasource (the influxdb address should be `http://influxdb:8086` as they are part of the same network stack, and username should be `fitbit_user` with the password `fitbit_password` for the database name `FitbitHealthStats` if you are using the default settings from the compose file.). Test the connection to make sure the influxdb is up and reachable (you are good to go if it finds the measurements when you test the connection)
 
 8. To use the Grafana dashboard, please use the [JSON files](https://github.com/arpanghosh8453/public-fitbit-projects/tree/main/Grafana_Dashboard) downloaded directly from the Grafana_Dashboard of the project (there are separate versions of the dashboard for influxdb v1 and v2) or use the import code **23088** (for influxdb-v1) or **23090** (for influxdb-v2) to pull them directly from the Grafana dashboard cloud.
 
@@ -61,13 +254,13 @@ Note: If you are planning to use Influxdb V3, you need to enter the admin access
 
 ---
 
-This project is tested and optimized for InfluxDB 1.11, and using the same version is strongly recommended. Using InfluxDB 2.x may result in a less detailed dashboard as it's developed by other contributers and due to its sole reliance on Flux queries, which can be problematic to use with Grafana at times. In fact, InfluxQL is being reintroduced in InfluxDB 3.0, reflecting user feedback. Grafana also has better compatibility/stability with InfluxQL from InfluxDB 1.11. 
+This project is tested and optimized for InfluxDB 1.11, and using the same version is strongly recommended. Using InfluxDB 2.x may result in a less detailed dashboard as it's developed by other contributors and due to its sole reliance on Flux queries, which can be problematic to use with Grafana at times. In fact, InfluxQL is being reintroduced in InfluxDB 3.0, reflecting user feedback. Grafana also has better compatibility/stability with InfluxQL from InfluxDB 1.11. 
 
 Since InfluxDB 2.x offers no clear benefits for this project, there are no plans for a full migration. While support for InfluxDB 2.x exists for this project and has been tested by others, same visual experience cannot be guaranteed on Grafana dashboard designed for influxdb 2.x.
 
-Example `compose.yml` file contents for influxdb 1.11 is given here for a quick start. If you prefer using influxdb 2.x and accept the limited Grafana dashboard, please refer to the [`compose.yml `](./compose.yml) file and update the `ENV` vriables accordingly. 
+Example `compose.yml` file contents for influxdb 1.11 is given here for a quick start. If you prefer using influxdb 2.x and accept the limited Grafana dashboard, please refer to the [`compose.yml `](./compose.yml) file and update the `ENV` variables accordingly. 
 
-Support of current [Influxdb 3](https://docs.influxdata.com/influxdb3/core/) OSS is also available with this project [ `Exprimental` ]
+Support for current [InfluxDB 3](https://docs.influxdata.com/influxdb3/core/) OSS is also available with this project [Experimental].
 
 > [!IMPORTANT]
 > Please note that InfluxDB 3.x OSS limits the query time limit to 72 hours. This can be extended more by setting `INFLUXDB3_QUERY_FILE_LIMIT` to a very high value with a potential risk of crashing the container (OOM Error). As we are interested in visualization long term data trends, this limit defeats the purpose. Hence, we strongly recommend using InfluxDB 1.11.x (default settings) to our users as long as it's not discontinued from production. 
@@ -86,6 +279,23 @@ services:
       - FITBIT_LOG_FILE_PATH=/app/logs/fitbit.log
       - TOKEN_FILE_PATH=/app/tokens/fitbit.token
       - AUTO_DATE_RANGE=True # Used for bulk update, read Historical Data Update section in README
+      - FITBIT_RATE_LIMIT_BUFFER_SECONDS=300 # extra buffer after Fitbit 429 reset header
+      - ENABLE_DERIVED_PIPELINE_HEALTH=True # Derived PipelineHealth measurement
+      - ENABLE_DERIVED_RECOVERY_SCORE=False # Derived RecoveryScore measurement
+      - ENABLE_DERIVED_TRAINING_LOAD=False # Derived TrainingLoad measurement
+      - ENABLE_DERIVED_CARDIO_FITNESS=False # Derived CardioFitness measurement (RHR heuristic)
+      - ENABLE_DERIVED_CORRELATION_SIGNALS=False # Derived CorrelationSignals (latest-two-day deltas per signal)
+      - ENABLE_DERIVED_CORRELATION_MATRIX=False # Derived CorrelationMatrix (rolling + lagged correlations)
+      - ENABLE_DERIVED_ZSCORES=False # Derived ZScores (28d anomaly scores)
+      - ENABLE_DERIVED_TREND_SIGNALS=False # Derived TrendSignals (7d slopes)
+      - ENABLE_DERIVED_READINESS_FLAGS=False # Derived ReadinessFlags (alert-friendly booleans)
+      - ENABLE_DERIVED_AUTO_BACKFILL=False # startup derived-only recompute from existing direct points
+      - DERIVED_AUTO_BACKFILL_DAYS=30 # lookback days for startup backfill
+      - DERIVED_AUTO_BACKFILL_MAX_DAYS_PER_RUN=90 # safety cap for startup backfill window
+      - ENABLE_DIRECT_CARDIO_FITNESS=False # direct CardioFitness endpoint (if account scope supports)
+      - ENABLE_DIRECT_ECG=False # direct ECG event endpoint (if account scope supports)
+      - ENABLE_DIRECT_IRN=False # direct irregular-rhythm notification endpoint (if account scope supports)
+      - ENABLE_DEVICE_SYNC_HEALTH=False # direct device sync freshness metric
       - INFLUXDB_VERSION=1
       - INFLUXDB_HOST=influxdb
       - INFLUXDB_PORT=8086
@@ -139,15 +349,15 @@ services:
     image: 'grafana/grafana:latest'
 ```
 
-✅ The Above compose file creates an open read/write access influxdb database with no authentication. Unless you expose this database to the open internet directly, this poses no threat. You may enable authentication and grant appropriate read/write access to the `fitbit_user` on the `FitbitHealthStats` database manually if you want with `INFLUXDB_ADMIN_ENABLED`, `INFLUXDB_ADMIN_USER`, and `INFLUXDB_ADMIN_PASSWORD` ENV variables, following the [influxdb guide](https://github.com/docker-library/docs/blob/master/influxdb/README.md) but this won't be covered here for the sake of simplicity. 
+The above compose file creates an open read/write InfluxDB database with no authentication. Unless you expose this database directly to the open internet, this poses no threat. You may enable authentication and grant appropriate read/write access to the `fitbit_user` on the `FitbitHealthStats` database manually using `INFLUXDB_ADMIN_ENABLED`, `INFLUXDB_ADMIN_USER`, and `INFLUXDB_ADMIN_PASSWORD` environment variables, following the [InfluxDB guide](https://github.com/docker-library/docs/blob/master/influxdb/README.md), but this is not covered here for simplicity.
 
 ## Historical Data Update
 
 #### Background
 
-The primary purpose of this script is to visualize long term data and if you have just discovered it, you may need to wait a long time to acheive this by automatic daily data fetch process. But fear not! this script was written with that fact in mind. As you may know, **fitbit rate limits the API calls to their server from their users, so only 150 API calls are allowed per hour** and it resets every hour. Some API endpoints allows fetching long term data for months and years while most **intraday data is limited to 24 hours per API call**. So this means if you need to fetch HR and steps data for 5 days, there is no other way but making 5x2=10 API calls to their servers. Now imagine this at scale, multiple measurements over the years of data. I was faced with this exact problem and it really took me a long time to figure out the most optimal way to fetch bulk historic data is to group them into categories based on their period limits and implement robust handing of `429 Error` ('too many requests within an hour' error).
+The primary purpose of this script is to visualize long term data and if you have just discovered it, you may need to wait a long time to achieve this by automatic daily data fetch process. But fear not! this script was written with that fact in mind. As you may know, **Fitbit rate limits the API calls to their server from their users, so only 150 API calls are allowed per hour** and it resets every hour. Some API endpoints allow fetching long term data for months and years while most **intraday data is limited to 24 hours per API call**. So this means if you need to fetch HR and steps data for 5 days, there is no other way but making 5x2=10 API calls to their servers. Now imagine this at scale, multiple measurements over the years of data. I was faced with this exact problem and it really took me a long time to figure out the most optimal way to fetch bulk historic data is to group them into categories based on their period limits and implement robust handling of `429 Error` ('too many requests within an hour' error).
 
-This script has a feature that in the bulk update mode it will fill up the less limited data first and finally fill up the intraday data so you can see the data filling up in grafana real time as the script progresses. After it exausts it's available 150 calls for the hour, it will go to dormant mode for the remaining duration for that hour, and resume fetching the data as soon as the wait time is up automatically (so you can just leave it and let it work). To give you a timeline, **it took a little more than 24 hours to fetch all the historic data for my 2 years of historic data from their servers**.
+This script has a feature that in the bulk update mode it will fill up the less limited data first and finally fill up the intraday data so you can see the data filling up in grafana real time as the script progresses. After it exhausts it's available 150 calls for the hour, it will go to dormant mode for the remaining duration for that hour, and resume fetching the data as soon as the wait time is up automatically (so you can just leave it and let it work). To give you a timeline, **it took a little more than 24 hours to fetch all the historic data for my 2 years of historic data from their servers**.
 
 #### Procedure
 
@@ -157,19 +367,19 @@ The process is quite simple. you need to add an ENV variable and rerun the conta
 - In the docker compose file, add a new ENV variable `AUTO_DATE_RANGE=False` under the `environment` section along with other variables. This variable switches the mode to bulk update instead of regular daily update
 - Assuming you are already in the directory where the `compose.yml` file is, run `docker compose run --rm fitbit-fetch-data` - this will run this container in _"remove container automatically after finish"_ mode which is useful for one time running like this. This will also attach the container to the shell as interactive mode, so don't close the shell until the bulk update is complete.
 - After initialization, you will be requested to input the start and end dates in YYYY-MM-DD format. the format is very important so please enter the dates like this `2024-03-13`. Start date must be earlier than end date. The script should work for any given range, but if you encounter an error during the bulk update with large date range, please break the date range into one year chunks (maybe a few days less than one year just to be safe), and run it for each one year chunk one after another. I personally did not encounter any issue with longer date ranges, but this is just a heads up.
-- You will see the update logs in the attached shell. Please wait until it shpws `Bulk Update Complete` and exits. It might take a long time depending on the given duration and 150 API call limit per hour.
+- You will see the update logs in the attached shell. Please wait until it shows `Bulk Update Complete` and exits. It might take a long time depending on the given duration and 150 API call limit per hour.
 - You are done with the bulk update at this point. Remove the ENV variable from the compose or change it to `AUTO_DATE_RANGE=True`, save the compose file and run `docker compose up` to resume daily update.
   
 #### Non-interactive Procedure
 
-You can run the bulk update in non-interactive mode by setting these additoinal environment variables.
+You can run the bulk update in non-interactive mode by setting these additional environment variables.
 
 - `MANUAL_START_DATE` optional, in YYYY-MM-DD format, if you want to bulk update only from specific date
 - `MANUAL_END_DATE` optional, in YYYY-MM-DD format, if you want to bulk update until a specific date
 
 ## Backup Database
 
-Whether you are using a bind mount or a docker volume, creating a restorable archival backup of your valuable health data is always advised. Assuming you named your database as `FitbitHealthStats` and influxdb container name is `influxdb`, you can use the following script to create a static archival backup of your data present in the influxdb database at that time point. This restore points can be used to re-create the influxdb database with the archived data without requesting them from Garmin's servers again, which is not only time consuming but also resource intensive. 
+Whether you are using a bind mount or a docker volume, creating a restorable archival backup of your valuable health data is always advised. Assuming you named your database as `FitbitHealthStats` and influxdb container name is `influxdb`, you can use the following script to create a static archival backup of your data present in the influxdb database at that time point. This restore points can be used to re-create the influxdb database with the archived data without requesting them from Fitbit servers again, which is not only time consuming but also resource intensive. 
 
 ```bash
 #!/bin/bash
@@ -189,15 +399,15 @@ Please read detailed guide on this from the [influxDB documentation for backup a
 
 ## Direct Install method (For developers)
 
-Set up influxdb 1.8 ( direct install or via [docker](https://github.com/arpanghosh8453/public-docker-config#influxdb) ). Create an user with a password and an empty database.
+Set up influxdb 1.8 ( direct install or via [docker](https://github.com/arpanghosh8453/public-docker-config#influxdb) ). Create a user with a password and an empty database.
 
-Set up grafana recent release ( direct install or via [docker](https://github.com/arpanghosh8453/public-docker-config#grafana) )
+Set up a recent Grafana release ( direct install or via [docker](https://github.com/arpanghosh8453/public-docker-config#grafana) )
 
 Use the `requirements.txt` file to install the required packages using pip
 
 Follow this [guide](https://dev.fitbit.com/build/reference/web-api/developer-guide/getting-started/) to create an application. This will give you a client ID, client secret, and a refresh token.
 
-❗ **The Fitbit application must be personal type for the access of intraday data series** ❗ - Otherwise you might encounter `KeyError: 'activities-heart-intraday'` Error.
+**The Fitbit application must be personal type for intraday data series access.** Otherwise you might encounter `KeyError: 'activities-heart-intraday'`.
 
 Update the following variables in the python script ( use the influxdb-v2 specific variables for influxdb-v2 instance )
 
@@ -236,10 +446,11 @@ User [@Jasonthefirst](https://github.com/Jasonthefirst) has developed a plugin (
 
 ## Support me
 
-If you enjoy the script and love how it works with simple setup, please consider supporting me with a coffee ❤. You can view more detailed health statistics with this setup than paying a subscription fee to Fitbit, thanks to their free REST API services.
+If you enjoy the script and love how it works with a simple setup, please consider supporting me with a coffee. You can view more detailed health statistics with this setup than by paying a subscription fee to Fitbit, thanks to their free REST API services.
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/A0A84F3DP)
 
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=arpanghosh8453/public-fitbit-projects&type=Date)](https://www.star-history.com/#arpanghosh8453/public-fitbit-projects&Date)
+

@@ -23,5 +23,13 @@
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml
+logs
+tokens
+influxdb
+grafana
+compose.local.yml
+*.local.yml
+refresh.txt
+New Text Document.txt
 LICENSE
 README.md
