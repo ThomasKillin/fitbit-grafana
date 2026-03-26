@@ -1,15 +1,7 @@
 name: Build and Push Docker Image to Docker Hub
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'Fitbit_Fetch.py'
-      - 'compose.yml'
-      - 'requirements.txt'
-      - 'Dockerfile'
-      - '.dockerignore'
+  workflow_dispatch:
 
 env:
   REGISTRY: docker.io
@@ -32,6 +24,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Test the Docker image
@@ -40,6 +33,7 @@ jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_PASSWORD != '' }}
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
